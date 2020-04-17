@@ -1,0 +1,20 @@
+//================
+double EBIN    			0.01
+double EMIN   			0.000
+double MAXE0 			21.00
+int GAUSPT        		10
+bool EFF            	1
+int COVARIANCE  	0
+bool SORT           	1
+
+bool FERMI          	1
+bool SCREEN         	1
+bool LAMBDA         	0
+
+bool COR            	1
+bool QEDRADIATION   	1
+bool WEAKFINITESIZE 	0
+bool WEAKMAG        	1
+bool COULOMBFINITESIZE 	0
+bool L0COULOMB      	0
+//================

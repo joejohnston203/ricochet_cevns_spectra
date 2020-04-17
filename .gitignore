@@ -1,3 +1,6 @@
 *.pyc
 *#
 *~
+
+# Individual isotope's spectra should not be saved on github
+data/BDB_all_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW.root
