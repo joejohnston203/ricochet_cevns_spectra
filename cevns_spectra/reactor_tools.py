@@ -70,6 +70,9 @@ class NeutrinoSpectrum:
         self._spectrum_integral = 0.
         
 
+    def get_settings_string(self):
+        return "%i MW, %i m"%(self.power, self.distance/100.)
+
     def get_fractions(self):
         '''return fractions as an array 
 
