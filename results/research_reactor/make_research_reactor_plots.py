@@ -19,6 +19,27 @@ Mn_eV = Mn*1e3
 
 s_per_day = 60.0*60.0*24.0
 
+def store_reactor_flux_kev(nu_spec1, outfile="flux.txt",
+                           e_kev_lb=0.,
+                           e_kev_ub=1.e4,
+                           num_points=10000):
+    '''
+    Store the flux in a text file
+
+    Output is in two columns:
+    E_nu (keV), Flux (nu/(keV*day*cm^2))
+
+    The stored flux is always from 1 eV to 10 MeV. e_kev_lb
+    and e_kev_ub are used to set the stored flux to 0
+    outside of that region
+    '''
+    e_arr = np.linspace(1., 1.e7, num_points)
+    spec = s_per_day*nu_spec1.d_phi_d_enu_ev(e_arr)*1e3
+    spec[np.logical_or(e_arr<e_kev_lb*1000.,
+                       e_arr>e_kev_ub*1000.)] = 0.
+    np.savetxt(outfile, np.stack((e_arr/1.e3, spec), 1),
+               header="E_nu (keV), Flux (nu/(keV*day*cm^2))")
+
 def plot_neutrino_spectrum_comparison(nu_spec1, nu_spec_mueller,
                                       num_points=1000):
     '''
@@ -146,6 +167,17 @@ if __name__ == "__main__":
     nu_spec_mueller.initialize_d_r_d_enu("other", "mueller")
 
     # Make Plots
+    store_reactor_flux_kev(nu_spec, "flux_research_reactor_all.txt")
+    store_reactor_flux_kev(nu_spec,
+                           "flux_research_reactor_lt1800.txt",
+                           0., 1800.)
+    store_reactor_flux_kev(nu_spec,
+                           "flux_research_reactor_gt1800.txt",
+                           1800., 1.e4)
+    store_reactor_flux_kev(nu_spec,
+                           "flux_research_reactor_zero.txt",
+                           1.1e4, 1.e4)
     plot_neutrino_spectrum_comparison(nu_spec, nu_spec_mueller, num_points=1000)
     plot_dsigmadT_cns_rate(nu_spec, num_points=100)
     plot_total_cns_rate(nu_spec, num_points=100)
+
