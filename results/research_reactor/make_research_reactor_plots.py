@@ -141,16 +141,16 @@ if __name__ == "__main__":
 
     nu_spec = NeutrinoSpectrum(distance, power, False, *fractions)
     nu_spec.initialize_d_r_d_enu("u235", "root",
-                                 "../../data/TBS_235U_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_thermal_cumulative_JEFF3.1.1.root",
+                                 "../../../final_spectra/TBS_235U_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_thermal_cumulative_JEFF3.1.1.root",
                                  "nsim100")
     nu_spec.initialize_d_r_d_enu("u238", "root",
-                                 "../../data/TBS_238U_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_fast_cumulative_JEFF3.1.1.root",
+                                 "../../../final_spectra/TBS_238U_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_fast_cumulative_JEFF3.1.1.root",
                                  "nsim100")
     nu_spec.initialize_d_r_d_enu("pu239", "root",
-                                 "../../data/TBS_239Pu_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_thermal_cumulative_JEFF3.1.1.root",
+                                 "../../../final_spectra/TBS_239Pu_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_thermal_cumulative_JEFF3.1.1.root",
                                  "nsim100")
     nu_spec.initialize_d_r_d_enu("pu241", "root",
-                                 "../../data/TBS_241Pu_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_thermal_cumulative_JEFF3.1.1.root",
+                                 "../../../final_spectra/TBS_241Pu_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_thermal_cumulative_JEFF3.1.1.root",
                                  "nsim100")
     nu_spec.initialize_d_r_d_enu("other", "zero")
 

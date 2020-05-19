@@ -198,8 +198,8 @@ class NeutrinoSpectrum:
             self._spectrum_integral = quad(self.d_r_d_enu, 0., np.inf)[0]
             self.bump_frac = frac
             self.bump_reset = False
-        mu = 4200.
-        sig = 500.
+        mu = 5700.
+        sig = 600.
         return self.bump_frac*self._spectrum_integral*\
             1./(sig*np.sqrt(2.*np.pi))*\
             np.exp(-0.5*((enu-mu)/sig)**2)

@@ -304,34 +304,112 @@ def plot_lowe_spectra(nu_spec,
                       output_path_prefix="plots/",
                       Z=32, A=72.64, isotope_name='Ge',
                       site_title="Commerical Reactor",
-                      enu_low=1.8e6):
+                      enu_low=1.8e6,
+                      lt18=True, u238n=True,
+                      neutron_shapes=True,
+                      neutron_levels=True):
     t_arr = np.logspace(0, 3, num=100)
 
     fig3 = plt.figure()
     fig3.patch.set_facecolor('white')
     plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, Z, A, nu_spec),'k-',label='Total',linewidth=2)
-    plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, Z, A, nu_spec, enu_min=enu_low),'m:',label='enu>%.1f MeV'%(enu_low/1.e6),linewidth=2)
-    plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, Z, A, nu_spec, enu_max=enu_low),'c--',label='enu<%.1f MeV'%(enu_low/1.e6),linewidth=2)
 
-    include_other = nu_spec.include_other
-    nu_spec.include_other = False
-    plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, Z, A, nu_spec),'r:',label='Fission',linewidth=2)
-    nu_spec.include_other = include_other
+    if(lt18):
+        plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, Z, A, nu_spec, enu_min=enu_low),'m--',label='enu>%.1f MeV'%(enu_low/1.e6),linewidth=2)
+        plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, Z, A, nu_spec, enu_max=enu_low),'c--',label='enu<%.1f MeV'%(enu_low/1.e6),linewidth=2)
 
-    fractions = nu_spec.get_fractions()
-    nu_spec.set_fractions([0., 0., 0., 0.])
-    plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, Z, A, nu_spec),'b--',label='U-238 n Capture',linewidth=2)
-    nu_spec.set_fractions(fractions)
+    if(u238n):
+        include_other = nu_spec.include_other
+        nu_spec.include_other = False
+        plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, Z, A, nu_spec),'r--',label='Fission',linewidth=2)
+        nu_spec.include_other = include_other
+
+        fractions = nu_spec.get_fractions()
+        nu_spec.set_fractions([0., 0., 0., 0.])
+        plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, Z, A, nu_spec),'b--',label='U-238 n',linewidth=2)
+        nu_spec.set_fractions(fractions)
+
+    def n_back(T_keV, tau_1, tau_2, fac_2,
+               scale, norm=1., n_xsec=0.081):
+        # Returns rate in evts/kg/day/keV
+        rescale = n_xsec/0.081
+        return 1.e-3*norm*rescale*scale*\
+            (np.exp(-tau_1*T_keV)+fac_2*np.exp(-tau_2*T_keV))
+    n_back = np.vectorize(n_back)
+
+    ge_xsec = 0.155
+    n_cons_int = spint.quad(n_back, 0.01, 0.9,
+                            args=(0.081*1.e3,
+                                  0.0086*1.e3, 0.23/0.38,
+                                  1.))[0]
+    n_cons_scale = 1/n_cons_int
+    if(neutron_levels):
+        plt.loglog(t_arr, n_back(t_arr*1.e-3,
+                                 0.081*1.e3,
+                                 0.0086*1.e3, 0.23/0.38,
+                                 n_cons_scale,
+                                 100.*1.e-3, ge_xsec),
+                   ':', color='darkorange', label="B=100., Cons")
+        plt.loglog(t_arr, n_back(t_arr*1.e-3,
+                                 0.081*1.e3,
+                                 0.0086*1.e3, 0.23/0.38,
+                                 n_cons_scale,
+                                 10.*1.e-3, ge_xsec),
+                   ':', color='orange', label="B=10., Cons")
+
+    if(neutron_shapes or neutron_levels):
+        plt.loglog(t_arr, n_back(t_arr*1.e-3,
+                                 0.081*1.e3,
+                                 0.0086*1.e3, 0.23/0.38,
+                                         n_cons_scale,
+                                 1.*1.e-3, ge_xsec),
+                   'y-.', label="B=1., Cons")
+
+    if(neutron_shapes):
+        n_med_int = spint.quad(n_back, 0.01, 0.9,
+                               args=(0.004*1.e3,
+                                     0.0005*1.e3, 0.64,
+                                     1.))[0]
+        n_med_scale = 1./n_med_int
+        plt.loglog(t_arr, n_back(t_arr*1.e-3,
+                                 0.004*1.e3,
+                                 0.0005*1.e3, 0.64,
+                                 n_med_scale,
+                                 1.*1.e-3, ge_xsec),
+                   '-.', color="lightgreen", label="B=1., Med")
     
-    plt.legend(prop={'size':11})
+        n_opt_int = spint.quad(n_back, 0.01, 0.9,
+                               args=(0.0004*1.e3,
+                                     0.00006*1.e3, 0.64,
+                                     1.))[0]
+        n_opt_scale = 1./n_opt_int
+        plt.loglog(t_arr, n_back(t_arr*1.e-3,
+                                 0.0004*1.e3,
+                                 0.00006*1.e3, 0.64,
+                                 n_opt_scale,
+                                 1.*1.e-3, ge_xsec),
+                   'g-.', label="B=1., Opt")
+
+    plt.legend(prop={'size':9})
     plt.xlabel('Recoil Energy (eV)')
     plt.ylabel('Differential Event Rate (Events/kg/day/eV)')
     pre_label = "%s (A=%.1f)"%(isotope_name, A)
-    plt.title(site_title+" "+pre_label+" Differential Rate")
-    plt.ylim(1e-4, 1e1)
+    plt.title(site_title+" "+pre_label+" Differential Rates")
+    plt.ylim(1e-4, 5e1)
+    plt.axvline(x=1.)
     plt.axvline(x=10.)
-    plt.axvline(x=100.)
-    plt.savefig(output_path_prefix+'low_e_spectra_'+isotope_name+'.png')
+    plt.axvline(x=50.)
+    filename = output_path_prefix+'lowe_'+isotope_name
+    if(lt18):
+        filename += "_lt18"
+    if(u238n):
+        filename += "_u238n"
+    if(neutron_shapes):
+        filename += "_nShapes"
+    if(neutron_levels):
+        filename += "_nLevels"
+    filename += '.png'
+    plt.savefig(filename)
     fig3.clf()
 
 def calc_lowe_fraction(nu_spec,
@@ -385,14 +463,14 @@ if __name__ == "__main__":
     nu_spec = NeutrinoSpectrum(distance, power, False, *fractions,
                                include_other=True)
     nu_spec.initialize_d_r_d_enu("u235", "root",
-                                 "../../data/sum_U_Pu_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW.root",
+                                 "../../../final_spectra/sum_U_Pu_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW.root",
                                  "nsim_Fission_avg",
                                  scale=scale)
     nu_spec.initialize_d_r_d_enu("u238", "zero")
     nu_spec.initialize_d_r_d_enu("pu239", "zero")
     nu_spec.initialize_d_r_d_enu("pu241", "zero")
     nu_spec.initialize_d_r_d_enu("other", "root",
-                                 "../../data/sum_U_Pu_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW.root",
+                                 "../../../final_spectra/sum_U_Pu_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW.root",
                                  "nsim_U239_Np239_Pu239_avg",
                                  scale=scale)
 
@@ -406,7 +484,7 @@ if __name__ == "__main__":
     nu_spec_kopeikin.initialize_d_r_d_enu("pu241", "zero")
     nu_spec_kopeikin.initialize_d_r_d_enu("other", "zero")
 
-    '''# Store flux to file, for use by statistical code
+    # Store flux to file, for use by statistical code
     store_reactor_flux_kev(nu_spec, "flux_commercial_reactor_all.txt")
     store_reactor_flux_kev(nu_spec,
                            "flux_commercial_reactor_lt1800.txt",
@@ -434,7 +512,11 @@ if __name__ == "__main__":
     # Compare fission and n capture neutrino spectra
     plot_neutrino_spectrum_other(nu_spec, num_points=1000)
     plot_lowe_spectra(nu_spec, "plots/",
-                      Z=32, A=72.64, isotope_name='Ge')'''
+                      Z=32, A=72.64, isotope_name='Ge',
+                      u238n=False)
+    plot_lowe_spectra(nu_spec, "plots/",
+                      Z=32, A=72.64, isotope_name='Ge',
+                      lt18=False)
 
     # Store fraction of neutrinos below 1.8 MeV for various threshold
     try:
