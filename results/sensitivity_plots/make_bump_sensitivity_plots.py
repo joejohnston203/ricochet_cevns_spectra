@@ -18,27 +18,26 @@ if __name__ == "__main__":
     plt.subplots_adjust(wspace=0.3)
     plt.subplots_adjust(hspace=0.4)
 
-    x_thr      = [1.,    10.,   50.]
-    y_thr      = [2.5e7, 3.3e7, 8.5e7]
-    y_low_thr  = [2.9e2, 9.6e3, 1.0e4]
-    y_high_thr = [1.6e9, 2.0e9, 3.5e9]
-    a00.plot(x_thr, y_thr)
-    a00.fill_between(x_thr, y_low_thr, y_high_thr,
+    x_thr      = [1.e-4, 2.e-4, 4.e-4, 8.e-4, 1.e-3]
+    y_thr      = [1.7e5, 2.2e5, 2.6e5, 2.5e5, 2.0e5]
+    y_low_thr  = [3.3e3, 2.7e3, 2.2e3, 2.1e3, 6.4e3]
+    y_high_thr = [1.0e7, 2.4e6, 1.6e6, 3.7e6, 3.7e6]
+    a00.plot(1.e3*np.array(x_thr), y_thr)
+    a00.fill_between(1.e3*np.array(x_thr), y_low_thr, y_high_thr,
                      facecolor='c', color='c', alpha=0.5)
     a00.set(xlabel="Threshold (eV)", ylabel="Required Exposure (kg*years)")
     a00.set_xscale('log')
     a00.set_yscale('log')
 
-    #x_a      = [28.1, 65.4, 72.6]
-    x_a      = [72.6]
-    y_a      = [1.0e5]
-    y_low_a  = [4.9e3]
-    y_high_a = [5.9e6]
+    x_a      = [28.1, 65.4, 72.6]
+    y_a      = [9.8e5, 2.7e5, 2.0e5]
+    y_low_a  = [1.9e3, 6.4e3, 4.0e3]
+    y_high_a = [2.2e6, 2.1e6, 2.3e6]
     a01.plot(x_a, y_a)
     a01.fill_between(x_a, y_low_a, y_high_a,
                      facecolor='c', color='c', alpha=0.5)
     a01.set(xlabel="A", ylabel="Required Exposure (kg*years)")
-    #a01.set_yscale('log')
+    a01.set_yscale('log')
 
     x_b      = [1.,    10.,   100.]
     y_b      = [1.0e5, 4.8e4, 3.2e5]
@@ -62,5 +61,4 @@ if __name__ == "__main__":
     a11.xaxis.set_major_locator(MaxNLocator(integer=True))
     a11.set_yscale('log')
 
-    #plt.savefig('plots/bump_sensitivity_plots.png')
-    plt.show()
+    plt.savefig('plots/bump_sensitivity_plots.png')
