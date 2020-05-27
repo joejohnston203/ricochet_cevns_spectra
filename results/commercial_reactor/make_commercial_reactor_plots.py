@@ -311,21 +311,21 @@ def plot_lowe_spectra(nu_spec,
 
     fig3 = plt.figure()
     fig3.patch.set_facecolor('white')
-    plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A, nu_spec)*1.e3,'k-',label='Total',linewidth=1.)
+    plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec)*1.e3,'k-',label='Total',linewidth=1.)
 
     if(lt18):
-        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A, nu_spec, enu_min=enu_low)*1.e3, color="#e41a1c", linestyle="--", label='enu>%.1f MeV'%(enu_low/1.e6), linewidth=2.)
-        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A, nu_spec, enu_max=enu_low)*1.e3, color="#377eb8", linestyle=":", label='enu<%.1f MeV'%(enu_low/1.e6), linewidth=2.)
+        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec, enu_min=enu_low)*1.e3, color="#e41a1c", linestyle="--", label='enu>%.1f MeV'%(enu_low/1.e6), linewidth=2.)
+        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec, enu_max=enu_low)*1.e3, color="#377eb8", linestyle=":", label='enu<%.1f MeV'%(enu_low/1.e6), linewidth=2.)
 
     if(u238n):
         include_other = nu_spec.include_other
         nu_spec.include_other = False
-        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A, nu_spec)*1.e3, color="#e41a1c", linestyle="--", label='Fission', linewidth=2.)
+        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec)*1.e3, color="#e41a1c", linestyle="--", label='Fission', linewidth=2.)
         nu_spec.include_other = include_other
 
         fractions = nu_spec.get_fractions()
         nu_spec.set_fractions([0., 0., 0., 0.])
-        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A, nu_spec)*1.e3, color="#377eb8", linestyle=":", label='U-238 n', linewidth=2.)
+        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec)*1.e3, color="#377eb8", linestyle=":", label='U-238 n', linewidth=2.)
         nu_spec.set_fractions(fractions)
 
     def n_back(T_keV, tau_1, tau_2, fac_2,

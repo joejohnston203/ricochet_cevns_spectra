@@ -58,7 +58,7 @@ def plot_nu_bump(nu_spec,
         a0.plot(e_arr*1e-6,spec*1e6,lines_arr[i],
                  label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2)
 
-    a0.set_ylim(0., 0.4e18)
+    a0.set_ylim(0., 2e17)
     a0.set_xlim(0., 10.)
     a0.set(ylabel='Flux, nu/(MeV*day*cm^2)')
     a0.set_title('Neutrino Flux at Chooz Reactor')
@@ -82,7 +82,7 @@ def plot_nu_bump(nu_spec,
         axins.plot(e_arr*1e-6,spec*1e6,lines_arr[i],
                    label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2)
     axins.set_xlim(4.5, 7.5)
-    axins.set_ylim(0., 6.e15)
+    axins.set_ylim(0., 4.e15)
 
     plt.savefig('plots/reactor_bump_neutrino_spectrum.')
     nu_spec.bump_frac = old_frac
@@ -254,7 +254,7 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
     Z_arrs = [[14], [30], [32],
               [13, 8],
               [20, 74, 8]]
-    A_arrs = [[28.08-14], [35.38], [72.64-32.],
+    N_arrs = [[28.08-14], [35.38], [72.64-32.],
               [26.982-13., 16.0-8.],
               [40.078-20., 183.84-74., 16.0-8.]]
     atom_arrs = [[1], [1], [1],
@@ -266,13 +266,13 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
     for i in range(len(targets)):
         nu_spec.bump_frac = 0.
         spec_0 = dsigmadT_cns_rate_compound(t_arr, Z_arrs[i],
-                                            A_arrs[i], atom_arrs[i],
+                                            N_arrs[i], atom_arrs[i],
                                             nu_spec)
         a0.plot(t_arr*1.e-3,spec_0*1.e3,'k-',linewidth=2)
         no_bump_specs.append(spec_0)
         nu_spec.bump_frac = bump_frac
         spec_bump = dsigmadT_cns_rate_compound(t_arr, Z_arrs[i],
-                                               A_arrs[i], atom_arrs[i],
+                                               N_arrs[i], atom_arrs[i],
                                                nu_spec)
         bump_specs.append(spec_bump)
         a0.plot(t_arr*1.e-3, spec_bump*1.e3,
@@ -344,10 +344,11 @@ if __name__ == "__main__":
 
     # Plot bump
     max_bump_ratio(nu_spec, 0.0007)
-    #plot_nu_bump(nu_spec, bump_fracs=[0.0007, 0.0015])
-    #plot_cevns_bump(nu_spec, bump_fracs=[0.0007, 0.0015],
-    #                cns_bounds=[1.e-2, 1.e3])
+    plot_nu_bump(nu_spec, bump_fracs=[0.0007, 0.0015])
+    plot_cevns_bump(nu_spec, bump_fracs=[0.0007, 0.0015],
+                    cns_bounds=[1.e-2, 1.e3])
     #plot_cevns_bump_split(nu_spec, bump_fracs=[0.0007, 0.1, 0.5],
-    #                      cns_bounds=[1.e-9, 1.e4])
+    plot_cevns_bump_split(nu_spec, bump_fracs=[0.0007],
+                          cns_bounds=[1.e-5, 1.e4])
     plot_cevns_bump_targets(nu_spec, bump_frac=0.0007,
                             cns_bounds=[1.e-4, 1.e3])
