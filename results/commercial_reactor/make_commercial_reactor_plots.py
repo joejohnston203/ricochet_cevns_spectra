@@ -304,7 +304,7 @@ def plot_lowe_spectra(nu_spec,
                       Z=32, A=72.64, isotope_name='Ge',
                       site_title="Commerical Reactor",
                       enu_low=1.8e6,
-                      lt18=True, u238n=True,
+                      lt18=False, u238n=False,
                       neutron_shapes=True,
                       neutron_levels=True):
     t_arr = np.logspace(0, 3, num=100)
@@ -336,7 +336,6 @@ def plot_lowe_spectra(nu_spec,
             (np.exp(-tau_1*T_keV)+fac_2*np.exp(-tau_2*T_keV))
     n_back = np.vectorize(n_back)
 
-    ge_xsec = 0.155
     n_cons_int = spint.quad(n_back, 0.01, 0.9,
                             args=(0.081*1.e3,
                                   0.0086*1.e3, 0.23/0.38,
@@ -347,13 +346,13 @@ def plot_lowe_spectra(nu_spec,
                                  0.081*1.e3,
                                  0.0086*1.e3, 0.23/0.38,
                                  n_cons_scale,
-                                 100.*1.e-3, ge_xsec)*1.e3,
+                                 100.*1.e-3)*1.e3,
                    ':', color='darkorange', label="B=100., Cons")
         plt.loglog(t_arr*1.e-3, n_back(t_arr*1.e-3,
                                  0.081*1.e3,
                                  0.0086*1.e3, 0.23/0.38,
                                  n_cons_scale,
-                                 10.*1.e-3, ge_xsec)*1.e3,
+                                 10.*1.e-3)*1.e3,
                    ':', color='orange', label="B=10., Cons")
 
     if(neutron_shapes or neutron_levels):
@@ -361,7 +360,7 @@ def plot_lowe_spectra(nu_spec,
                                  0.081*1.e3,
                                  0.0086*1.e3, 0.23/0.38,
                                          n_cons_scale,
-                                 1.*1.e-3, ge_xsec)*1.e3,
+                                 1.*1.e-3)*1.e3,
                    color="#4daf4a", linestyle='-.',
                    linewidth=1.,
                    label="B (Conservative)")
@@ -376,11 +375,11 @@ def plot_lowe_spectra(nu_spec,
                                  0.004*1.e3,
                                  0.0005*1.e3, 0.64,
                                  n_med_scale,
-                                 1.*1.e-3, ge_xsec)*1.e3,
+                                 1.*1.e-3)*1.e3,
                    color="#984ea3", linestyle='-.',
                    linewidth=1.5,
                    label="B (Medium)")
-    
+
         n_opt_int = spint.quad(n_back, 0.01, 0.9,
                                args=(0.0004*1.e3,
                                      0.00006*1.e3, 0.64,
@@ -390,7 +389,7 @@ def plot_lowe_spectra(nu_spec,
                                  0.0004*1.e3,
                                  0.00006*1.e3, 0.64,
                                  n_opt_scale,
-                                 1.*1.e-3, ge_xsec)*1.e3,
+                                 1.*1.e-3)*1.e3,
                    color="#ff7f00", linestyle='-.',
                    linewidth=2.,
                    label="B (Optimistic)")
@@ -400,7 +399,7 @@ def plot_lowe_spectra(nu_spec,
     plt.ylabel('Differential Event Rate (dru)')
     pre_label = "%s (A=%.1f)"%(isotope_name, A)
     #plt.title(site_title+" "+pre_label+" Differential Rates")
-    plt.ylim(1e-1, 1.e4)
+    plt.ylim(1e-1, 5.e3)
     plt.axvline(x=1.e-3, color="k")
     plt.axvline(x=10.e-3, color="k")
     plt.axvline(x=50.e-3, color="k")
@@ -413,6 +412,136 @@ def plot_lowe_spectra(nu_spec,
         filename += "_nShapes"
     if(neutron_levels):
         filename += "_nLevels"
+    filename += '.png'
+    plt.savefig(filename)
+    fig3.clf()
+
+def plot_lowe_spectra_isotopes(nu_spec,
+                               output_path_prefix="plots/",
+                               Z_arrs=[[32]], A_arrs=[[72.64]], weights=[[1]],
+                               isotope_names=['Ge'],
+                               site_title="Commerical Reactor",
+                               enu_low=1.8e6,
+                               lt18=False, u238n=False,
+                               plot_total=False,
+                               plot_low=True,
+                               plot_high=False,
+                               plot_back=True):
+    t_arr = np.logspace(0, 3, num=100)
+
+    fig3 = plt.figure()
+    fig3.patch.set_facecolor('white')
+
+    high_colors = ["#a6cee3", "#b2df8a", "#fb9a99", "#fdbf6f", "#cab2d6"]
+    low_colors = ["#1f78b4", "#33a02c", "#e31a1c", "#ff7f00", "#6a3d9a"]
+
+    for i in range(len(Z_arrs)):
+        Z_arr = np.array(Z_arrs[i])
+        A_arr = np.array(A_arrs[i])
+        weight_arr = weights[i]
+        name = isotope_names[i]
+        if(plot_total):
+            plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate_compound(t_arr, Z_arr, A_arr-Z_arr, weight_arr, nu_spec)*1.e3,'-.', color=high_colors[i], label='%s Tot'%name,linewidth=float(i)/2.+0.5)
+
+        if(lt18):
+            if(plot_high):
+                plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate_compound(t_arr, Z_arr, A_arr-Z_arr, weight_arr, nu_spec, enu_min=enu_low)*1.e3, color=high_colors[i], linestyle="--", label='%s enu>%.1f MeV'%(name, enu_low/1.e6), linewidth=float(i)/2.+0.5)
+            if(plot_low):
+                plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate_compound(t_arr, Z_arr, A_arr-Z_arr, weight_arr, nu_spec, enu_max=enu_low)*1.e3, color=low_colors[i], linestyle="-", label='%s enu<%.1f MeV'%(name, enu_low/1.e6), linewidth=float(i)/2.+0.5)
+
+        if(u238n):
+            if(plot_high):
+                include_other = nu_spec.include_other
+                nu_spec.include_other = False
+                plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate_compound(t_arr, Z_arr, A_arr-Z_arr, weight_arr, nu_spec)*1.e3, color=high_colors[i], linestyle="--", label='%s Fission'%name, linewidth=float(i)/2.+0.5)
+                nu_spec.include_other = include_other
+
+            if(plot_low):
+                fractions = nu_spec.get_fractions()
+                nu_spec.set_fractions([0., 0., 0., 0.])
+                plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate_compound(t_arr, Z_arr, A_arr-Z_arr, weight_arr, nu_spec)*1.e3, color=low_colors[i], linestyle="-", label='%s U-238 n'%name, linewidth=float(i)/2.+0.5)
+                nu_spec.set_fractions(fractions)
+
+    if(plot_back):
+        def n_back(T_keV, tau_1, tau_2, fac_2,
+                   scale, norm=1., n_xsec=0.081):
+            # Returns rate in evts/kg/day/keV
+            rescale = n_xsec/0.081
+            return 1.e-3*norm*rescale*scale*\
+                (np.exp(-tau_1*T_keV)+fac_2*np.exp(-tau_2*T_keV))
+        n_back = np.vectorize(n_back)
+
+        '''n_cons_int = spint.quad(n_back, 0.01, 0.9,
+                            args=(0.081*1.e3,
+                                  0.0086*1.e3, 0.23/0.38,
+                                  1.))[0]
+        n_cons_scale = 1/n_cons_int
+        plt.loglog(t_arr*1.e-3, n_back(t_arr*1.e-3,
+                                0.081*1.e3,
+                                   0.0086*1.e3, 0.23/0.38,
+                                   n_cons_scale,
+                                   1.*1.e-3)*1.e3,
+               color="lightgrey", linestyle=':',
+               linewidth=2.,
+               label="B=1, Conservative")'''
+        n_med_int = spint.quad(n_back, 0.01, 0.9,
+                               args=(0.004*1.e3,
+                                     0.0005*1.e3, 0.64,
+                                     1.))[0]
+        n_med_scale = 1./n_med_int
+        plt.loglog(t_arr*1.e-3, n_back(t_arr*1.e-3,
+                                       0.004*1.e3,
+                                       0.0005*1.e3, 0.64,
+                                       n_med_scale,
+                                       1.*1.e-3)*1.e3,
+                   color="grey", linestyle=':',
+                   linewidth=1.5,
+                   label="B=1, Medium")
+
+        n_opt_int = spint.quad(n_back, 0.01, 0.9,
+                               args=(0.0004*1.e3,
+                                     0.00006*1.e3, 0.64,
+                                    1.))[0]
+        n_opt_scale = 1./n_opt_int
+        plt.loglog(t_arr*1.e-3, n_back(t_arr*1.e-3,
+                                       0.0004*1.e3,
+                                       0.00006*1.e3, 0.64,
+                                       n_opt_scale,
+                                       1.*1.e-3)*1.e3,
+                   color="k", linestyle=':',
+                   linewidth=1.,
+                   label="B=1, Optimistic")
+
+    plt.legend(prop={'size':9})
+    plt.xlabel('Recoil Energy (keV)')
+    plt.ylabel('Differential Event Rate (dru)')
+    plt.ylim(1e-1, 1.e4)
+    plt.axvline(x=1.e-3, color="k")
+    plt.axvline(x=10.e-3, color="k")
+    plt.axvline(x=50.e-3, color="k")
+    title="CEvNS Spectrum for "
+    if(lt18):
+        title += "Enu<1.8/Enu>1.8 MeV"
+        if(u238n):
+            title += " and "
+    if(u238n):
+        title += "U-238 n Capture/Fission"
+    plt.title(title)
+    filename = output_path_prefix+'lowe'
+    for name in isotope_names:
+        filename += '_'+name
+    if(lt18):
+        filename += "_lt18"
+    if(u238n):
+        filename += "_u238n"
+    if(plot_total):
+        filename += "_tot"
+    if(plot_low):
+        filename += "_low"
+    if(plot_high):
+        filename += "_high"
+    if(plot_back):
+        filename += "_back"
     filename += '.png'
     plt.savefig(filename)
     fig3.clf()
@@ -521,10 +650,69 @@ if __name__ == "__main__":
     plot_neutrino_spectrum_other(nu_spec, num_points=1000)
     plot_lowe_spectra(nu_spec, "plots/",
                       Z=32, A=72.64, isotope_name='Ge',
-                      u238n=False, neutron_levels=False)
+                      lt18=True, neutron_levels=False)
     plot_lowe_spectra(nu_spec, "plots/",
                       Z=32, A=72.64, isotope_name='Ge',
-                      lt18=False, neutron_levels=False)
+                      u238n=True, neutron_levels=False)
+
+    plot_lowe_spectra_isotopes(nu_spec, "plots/",
+                               Z_arrs=[[20, 74, 8],
+                                       [32], [30], [14],
+                                       [13, 8]],
+                               A_arrs=[[40.078, 183.84, 16.0],
+                                       [72.64], [35.38+30.], [28.08],
+                                       [26.982, 16.0]],
+                               weights=[[1, 1, 4],
+                                        [1], [1], [1],
+                                        [2, 3]],
+                               isotope_names=["CaWO4",
+                                              "Ge", "Zn", "Si",
+                                              "Al2O3"],
+                               lt18=True)
+    plot_lowe_spectra_isotopes(nu_spec, "plots/",
+                               Z_arrs=[[20, 74, 8],
+                                       [32], [30], [14],
+                                       [13, 8]],
+                               A_arrs=[[40.078, 183.84, 16.0],
+                                       [72.64], [35.38+30.], [28.08],
+                                       [26.982, 16.0]],
+                               weights=[[1, 1, 4],
+                                        [1], [1], [1],
+                                        [2, 3]],
+                               isotope_names=["CaWO4",
+                                              "Ge", "Zn", "Si",
+                                              "Al2O3"],
+                               lt18=True, plot_high=True,
+                               plot_back=False)
+    plot_lowe_spectra_isotopes(nu_spec, "plots/",
+                               Z_arrs=[[20, 74, 8],
+                                       [32], [30], [14],
+                                       [13, 8]],
+                               A_arrs=[[40.078, 183.84, 16.0],
+                                       [72.64], [35.38+30.], [28.08],
+                                       [26.982, 16.0]],
+                               weights=[[1, 1, 4],
+                                        [1], [1], [1],
+                                        [2, 3]],
+                               isotope_names=["CaWO4",
+                                              "Ge", "Zn", "Si",
+                                              "Al2O3"],
+                               u238n=True)
+    plot_lowe_spectra_isotopes(nu_spec, "plots/",
+                               Z_arrs=[[20, 74, 8],
+                                       [32], [30], [14],
+                                       [13, 8]],
+                               A_arrs=[[40.078, 183.84, 16.0],
+                                       [72.64], [35.38+30.], [28.08],
+                                       [26.982, 16.0]],
+                               weights=[[1, 1, 4],
+                                        [1], [1], [1],
+                                        [2, 3]],
+                               isotope_names=["CaWO4",
+                                              "Ge", "Zn", "Si",
+                                              "Al2O3"],
+                               u238n=True, plot_high=True,
+                               plot_back=False)
 
     # Store fraction of neutrinos below 1.8 MeV for various threshold
     try:
@@ -551,4 +739,3 @@ if __name__ == "__main__":
                        Z_arr=[20, 74, 8], A_arr=[40.078, 183.84, 16.0],
                        weights_arr=[1, 1, 4],
                        isotope_name='CaWO4')
-
