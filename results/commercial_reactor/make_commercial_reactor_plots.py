@@ -198,8 +198,8 @@ def plot_flux_xsec(nu_spec):
     e_arr = np.linspace(0., 1e7, 100000)
 
     # Plot neutrino flux
-    fig, host = plt.subplots(figsize=(10, 5))
-    fig.subplots_adjust(right=0.75)
+    fig, host = plt.subplots(figsize=(7, 4))
+    fig.subplots_adjust(left=0.05, right=0.95, bottom=0.15, top=0.95)
     fig.patch.set_facecolor('white')
 
     par1 = host.twinx()
