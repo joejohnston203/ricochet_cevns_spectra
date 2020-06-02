@@ -40,9 +40,10 @@ def plot_nu_bump(nu_spec,
     # Plot unzoomed neutrino flux and ratio
     fig1, (a0, a1) = plt.subplots(2, 1,
                                   gridspec_kw={'height_ratios': [2, 1],})
+    plt.subplots_adjust(bottom=0.075, top=0.95)
     #sharex=True)
     fig1.patch.set_facecolor('white')
-    fig1.set_figheight(9)
+    fig1.set_figheight(8.5)
     lines_arr = ['b--', 'r-.', 'y:',
                  'c-', 'g--', 'm-.']
     e_arr = np.linspace(0., 1e7, 100000)
@@ -61,7 +62,7 @@ def plot_nu_bump(nu_spec,
     a0.set_ylim(0., 2e17)
     a0.set_xlim(0., 10.)
     a0.set(ylabel='Flux, nu/(MeV*day*cm^2)')
-    a0.set_title('Neutrino Flux at Chooz Reactor')
+    a0.set_title('Neutrino Flux at Commercial Reactor')
 
     a1.plot(e_arr*1e-6,spec_tot/spec_tot,'k-',label="No Bump",linewidth=2)
     for i in range(len(bump_fracs)):
@@ -92,8 +93,9 @@ def plot_cevns_bump(nu_spec, bump_fracs, cns_bounds):
 
     fig1, (a0, a1) = plt.subplots(2, 1,
                                   gridspec_kw={'height_ratios': [2, 1],})
+    plt.subplots_adjust(bottom=0.075, top=0.95)
     fig1.patch.set_facecolor('white')
-    fig1.set_figheight(9)
+    fig1.set_figheight(8.5)
     lines_arr = ['b--', 'r-.', 'y:',
                  'c-', 'g--', 'm-.']
 
@@ -116,7 +118,7 @@ def plot_cevns_bump(nu_spec, bump_fracs, cns_bounds):
     a0.set_ylim(cns_bounds)
     a0.set_yscale("log")
     a0.set(ylabel='Ge Differential Event Rate (dru)')
-    #a0.set_title("Ge Differential Rate at Chooz Reactor")
+    a0.set_title("Ge Differential Rate at Commercial Reactor")
     a0.axvline(x=1.e-3, color='k', linestyle=":")
     a0.axvline(x=10.e-3, color='k', linestyle=":")
     a0.axvline(x=50.e-3, color='k', linestyle=":")
@@ -169,6 +171,7 @@ def plot_cevns_bump_split(nu_spec, bump_fracs, cns_bounds):
 
     fig1, (a0, a1) = plt.subplots(2, 1,
                                   gridspec_kw={'height_ratios': [2, 1],})
+    plt.subplots_adjust(bottom=0.075, top=0.95)
     fig1.patch.set_facecolor('white')
     fig1.set_figheight(9)
     lines_arr = ['b--', 'r-.', 'y:',
