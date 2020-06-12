@@ -69,6 +69,9 @@ def plot_nu_bump(nu_spec,
         spec = bump_specs[i]
         plt.plot(e_arr*1e-6,spec/spec_tot,lines_arr[i],
                  label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2)
+        print("Bump=%.2e, Ratio=%s"%(bump_fracs[i], spec/spec_tot))
+        print("tot int: %s"%spint.simps(spec_tot*1.e6, e_arr*1e-6))
+        print("bump int: %s"%spint.simps(spec*1.e6, e_arr*1e-6))
     a1.legend(loc=2, prop={'size':11})
     a1.set_xlim(0., 10.)
     a1.set_ylim(0.75, 1.25)
@@ -244,20 +247,22 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
                                   gridspec_kw={'height_ratios': [2, 1],})
     fig1.patch.set_facecolor('white')
     fig1.set_figheight(9)
-    lines_arr = ['b--', 'r-.', 'y:',
-                 'c-', 'g--', 'm-.']
+    colors_arr = ["#e41a1c", "#377eb8", "#4daf4a",
+                  "#984ea3", "#ff7f00"]
+    lines_arr = ['--', '-.', ':', '--', ':']
 
-    #t_arr = np.linspace(0, 10000, num=10000)
-    #t_arr = np.linspace(0, 10000, num=100)
-    t_arr = np.linspace(0, 2.e4, num=100)
+    #t_arr = np.logspace(0, np.log10(10000), num=500)
+    t_arr = np.logspace(-2, np.log10(10000), num=100)
 
-    targets = ["Si", "Zn", "Ge",
+    targets = ["Ge", "Zn", "Si",
                "Al2O3",
                "CaWO4"]
-    Z_arrs = [[14], [30], [32],
+    labels = ['Ge', 'Zn', 'Si',
+              r'Al$_2$O$_3$', r'CaWO$_4$']
+    Z_arrs = [[32], [30], [14],
               [13, 8],
               [20, 74, 8]]
-    N_arrs = [[28.08-14], [35.38], [72.64-32.],
+    N_arrs = [[72.64-32.], [35.38], [28.08-14],
               [26.982-13., 16.0-8.],
               [40.078-20., 183.84-74., 16.0-8.]]
     atom_arrs = [[1], [1], [1],
@@ -271,7 +276,7 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
         spec_0 = dsigmadT_cns_rate_compound(t_arr, Z_arrs[i],
                                             N_arrs[i], atom_arrs[i],
                                             nu_spec)
-        a0.plot(t_arr*1.e-3,spec_0*1.e3,'k-',linewidth=2)
+        a0.plot(t_arr*1.e-3,spec_0*1.e3,'-',color='k',linewidth=1)
         no_bump_specs.append(spec_0)
         nu_spec.bump_frac = bump_frac
         spec_bump = dsigmadT_cns_rate_compound(t_arr, Z_arrs[i],
@@ -279,37 +284,131 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
                                                nu_spec)
         bump_specs.append(spec_bump)
         a0.plot(t_arr*1.e-3, spec_bump*1.e3,
-                lines_arr[i],label=targets[i],linewidth=2)
-    a0.set_xlim(0., 8.)
-    a0.set_xscale("linear")
+                lines_arr[i],color=colors_arr[i],label=labels[i],linewidth=2)
+    a0.set_xlim(1.e-5, 10.)
+    #a0.set_xscale("linear")
+    a0.set_xscale("log")
     a0.set_ylim(cns_bounds)
     a0.set_yscale("log")
     a0.set(ylabel='Differential Event Rate (dru)')
     a0.set_title("Differential Rate at Chooz Reactor")
-    a0.legend(prop={'size':11})
+    a0.legend(prop={'size':11}, framealpha=0.9)
     a0.axvline(x=1.e-3, color='k', linestyle=":")
     a0.axvline(x=10.e-3, color='k', linestyle=":")
     a0.axvline(x=50.e-3, color='k', linestyle=":")
 
-    a1.plot(t_arr*1.e-3, no_bump_specs[0]/no_bump_specs[0],
-            'k-', label='No Bump', linewidth=2)
+    for i in range(5):
+        print("%s ratio: %s"%(targets[i], bump_specs[i]/no_bump_specs[i]))
+    a1.plot(t_arr*1.e-3, no_bump_specs[4]/no_bump_specs[4],
+            '-', color='k', label='No Bump', linewidth=2)
     for i in range(len(targets)):
         spec_bump = bump_specs[i]
         a1.plot(t_arr*1.e-3,spec_bump/no_bump_specs[i],
-                 lines_arr[i],label=targets[i],linewidth=2)
-    a1.set_xlim(0., 8.)
-    a1.set_xscale("linear")
-    a1.set_ylim(0.75, 1.25)
-    #a1.legend(prop={'size':11})
+                 lines_arr[i],color=colors_arr[i],label=labels[i],linewidth=2)
+    a1.set_xlim(1.e-5, 10.)
+    #a1.set_xscale("linear")
+    a1.set_xscale("log")
+    a1.set_ylim(0.975, 1.1)
+    #a1.legend(prop={'size':11}, framealpha=0.9)
     #plt.xlabel('Recoil Energy T (keV)')
     a1.set(xlabel='Recoil Energy T (keV)', ylabel='Ratio')
     a0.axvline(x=1.e-3, color='k', linestyle=":")
     a1.axvline(x=10.e-3, color='k', linestyle=":")
     a1.axvline(x=50.e-3, color='k', linestyle=":")
 
+    axins = inset_axes(a0, width=2.7, height=1.8, loc=3,
+                       bbox_to_anchor=(0.075, 0.075),
+                       bbox_transform=a0.transAxes)
+    axins.xaxis.set_major_locator(plt.MaxNLocator(1))
+    axins.xaxis.set_minor_locator(plt.MaxNLocator(1))
+    for i in [4,3,2,1,0]:
+        if(i>1):
+            alpha=0.5
+        else:
+            alpha=1.
+        axins.plot(t_arr*1.e-3, no_bump_specs[i]*1.e3,
+                   '-',color='k',linewidth=2, alpha=alpha)
+        axins.plot(t_arr*1.e-3, bump_specs[i]*1.e3,
+                   lines_arr[i],color=colors_arr[i],label=labels[i],
+                   linewidth=2, alpha=alpha)
+    zoom_lb = 0.4
+    zoom_ub = 1.2
+    axins.set_xlim(zoom_lb, zoom_ub)
+    axins.set_xscale("log")
+    axins.set_ylim(2.e-1, 2.e1)
+    axins.set_yscale("log")
+
+    # On all plots, shade in the zoomed region
+    x_fill = np.array([zoom_lb, zoom_ub])
+    a0.fill_between(x_fill, -10, 1.e13,
+                    color='lightgrey')
+    a1.fill_between(x_fill, -10, 1.e13,
+                    color='lightgrey')
+
+    a0.grid()
+    a1.grid()
+    plt.grid()
+
     plt.savefig('plots/reactor_bump_dsigmadT_targets.png')
 
     nu_spec.bump_frac = old_frac
+
+def plot_total_rate_vs_bump(nu_spec):
+    old_frac = nu_spec.bump_frac
+
+    fig = plt.figure()
+    fig.patch.set_facecolor('white')
+
+    threshold = 10.
+    bump_arr = np.linspace(0., 1., 20)
+
+    targets = ["Ge", "Zn", "Si",
+               "Al2O3",
+               "CaWO4"]
+    Z_arrs = [[32], [30], [14],
+              [13, 8],
+              [20, 74, 8]]
+    N_arrs = [[72.64-32.], [35.38], [28.08-14],
+              [26.982-13., 16.0-8.],
+              [40.078-20., 183.84-74., 16.0-8.]]
+    atom_arrs = [[1], [1], [1],
+                 [2, 3],
+                 [1, 1, 4]]
+
+    outstr = ""
+    for i in range(5):
+        rates = []
+        for b in bump_arr:
+            nu_spec.bump_frac = b
+            rates.append(total_cns_rate_an_compound([threshold], 1e7, Z_arrs[i], N_arrs[i], atom_arrs[i], nu_spec)[0])
+        plt.plot(bump_arr, rates, label=targets[i])
+        outstr += "%s Rates (evts/kg/day)\n"%targets[i]
+        outstr += "\tb=0.   : %.3e\n"%rates[0]
+        nu_spec.bump_frac = 0.0007
+        tmp_rate = total_cns_rate_an_compound([threshold], 1e7, Z_arrs[i], N_arrs[i], atom_arrs[i], nu_spec)[0]
+        outstr += "\tb=0.0007: %.3e\n"%tmp_rate
+        outstr += "\t\tIncrease: %.3e\n"%(tmp_rate-rates[0])
+        outstr += "\t\t%% Increase: %.3f\n"%((tmp_rate-rates[0])/rates[0]*100.)
+        outstr += "\tb=1.   : %.3e\n"%rates[-1]
+    print(outstr)
+    f = open("plots/bump_rates.txt", 'w')
+    f.write(outstr)
+    f.close()
+
+    plt.legend(prop={'size':11})
+    plt.xlabel("Bump Fraction")
+    plt.ylabel("Total CEvNS Rate (evts/kg/day)")
+    plt.title("Total Rate, Tthr=%.1f eV"%threshold)
+    plt.grid()
+    plt.axvline(x=0.0007, color='k', linestyle=":")
+    plt.xlim(0., 1.)
+    plt.savefig('plots/total_event_rate_vs_bump_unzoomed.png')
+    plt.xlim(0., 0.1)
+    plt.ylim(0., 100.)
+    plt.savefig('plots/total_event_rate_vs_bump.png')
+
+    nu_spec.bump_frac = old_frac
+
 
 if __name__ == "__main__":
     try:
@@ -346,12 +445,14 @@ if __name__ == "__main__":
     bump_frac = 0.0007
 
     # Plot bump
-    max_bump_ratio(nu_spec, 0.0007)
-    plot_nu_bump(nu_spec, bump_fracs=[0.0007, 0.0015])
-    plot_cevns_bump(nu_spec, bump_fracs=[0.0007, 0.0015],
+    max_bump_ratio(nu_spec, bump_frac)
+    plot_nu_bump(nu_spec, bump_fracs=[bump_frac, 2*bump_frac])
+
+    plot_cevns_bump(nu_spec, bump_fracs=[bump_frac, 2*bump_frac],
                     cns_bounds=[1.e-2, 1.e3])
-    #plot_cevns_bump_split(nu_spec, bump_fracs=[0.0007, 0.1, 0.5],
-    plot_cevns_bump_split(nu_spec, bump_fracs=[0.0007],
+    plot_cevns_bump_split(nu_spec, bump_fracs=[bump_frac, 2.*bump_frac],
                           cns_bounds=[1.e-5, 1.e4])
-    plot_cevns_bump_targets(nu_spec, bump_frac=0.0007,
-                            cns_bounds=[1.e-4, 1.e3])
+    plot_cevns_bump_targets(nu_spec, bump_frac=bump_frac,
+                            cns_bounds=[1.e-4, 1.e4])
+
+    plot_total_rate_vs_bump(nu_spec)
