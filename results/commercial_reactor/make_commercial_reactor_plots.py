@@ -1,7 +1,7 @@
 from reactor_tools import NeutrinoSpectrum
 
 import cevns_spectra
-from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns
+from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns, cevns_yield_compound
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -92,24 +92,26 @@ def plot_neutrino_spectrum_other(nu_spec, num_points=1000):
     fig0 = plt.figure()
     fig0.patch.set_facecolor('white')
     spec_tot = s_per_day*nu_spec.d_phi_d_enu_ev(e_arr)
-    plt.semilogy(e_arr*1e-6,spec_tot*1e6, "k-",linewidth=1, label="Total")
+    plt.plot(e_arr*1e-6,spec_tot*1e6, "k-",linewidth=2, label="Total")
     
     include_other = nu_spec.include_other
     nu_spec.include_other = False
     spec_fission = s_per_day*nu_spec.d_phi_d_enu_ev(e_arr)
-    plt.semilogy(e_arr*1e-6,spec_fission*1e6, 'r:', linewidth=1, label="Fission")
+    plt.plot(e_arr*1e-6,spec_fission*1e6, 'r:', linewidth=2, label="Fission")
     nu_spec.include_other = include_other
     
     fractions = nu_spec.get_fractions()
     nu_spec.set_fractions([0., 0., 0., 0.])
     spec_other = s_per_day*nu_spec.d_phi_d_enu_ev(e_arr)
-    plt.semilogy(e_arr*1e-6,spec_other*1e6, 'b--', linewidth=1, label="U-238 n Capture")
+    plt.plot(e_arr*1e-6,spec_other*1e6, 'b--', linewidth=2, label="Capture")
     nu_spec.set_fractions(fractions)
 
-    plt.legend(loc=8, prop={'size':11})
+    plt.legend(prop={'size':11})
     plt.xlabel('Neutrino Energy (MeV)')
     plt.ylabel('Flux, nu/(MeV*day*cm^2)')
-    plt.ylim(1.e12, 3.e17)
+    plt.xlim(0., 8.)
+    plt.ylim(0., 1.7e17)
+    plt.grid()
     #plt.title('Commercial Reactor Neutrino Flux')
     plt.savefig('plots/commercial_reactor_fission_vs_capture.png')
     fig0.clf()
@@ -199,7 +201,7 @@ def plot_flux_xsec(nu_spec):
 
     # Plot neutrino flux
     fig, host = plt.subplots(figsize=(7, 4))
-    fig.subplots_adjust(left=0.05, right=0.95, bottom=0.15, top=0.95)
+    fig.subplots_adjust(left=0.075, right=0.95, bottom=0.15, top=0.95)
     fig.patch.set_facecolor('white')
 
     par1 = host.twinx()
@@ -220,40 +222,47 @@ def plot_flux_xsec(nu_spec):
 
     # Spectrum in nu/(MeV*day*cm^2)
     spec_tot = s_per_day*nu_spec.d_phi_d_enu_ev(e_arr)*1e6
-    p_spec, = host.plot(e_arr*1e-6,spec_tot, "k-", label="Neutrino Flux", linewidth=2.)
+    p_spec, = host.plot(e_arr*1e-6,spec_tot, "k-", label=r"$\nu$ Flux", linewidth=2.)
     lines.append(p_spec)
 
-    xsec_1eV = total_XSec_cns(1., e_arr, Z, N)
-    p_xsec_1, = par1.plot(e_arr*1e-6,xsec_1eV, color="#e41a1c", linestyle="-", label="Ethr=1eV")
+    xsec_1eV = total_XSec_cns(0., e_arr, Z, N)
+    p_xsec_1, = par1.plot(e_arr*1e-6,xsec_1eV, color="#e41a1c", linestyle="-", label=r'T$_{Thr}$=0 eV')
     lines.append(p_xsec_1)
     prod_1eV = spec_tot*xsec_1eV
-    p_prod_1, = par2.plot(e_arr*1e-6,spec_tot*xsec_1eV, color=lighten_color("#e41a1c", 0.6), linestyle="-")
+    p_prod_1, = par2.plot(e_arr*1e-6,spec_tot*xsec_1eV, color=lighten_color("#e41a1c", 1.0), linestyle="-")
+
+    '''xsec_1eV = total_XSec_cns(1., e_arr, Z, N)
+    p_xsec_1, = par1.plot(e_arr*1e-6,xsec_1eV, color="#e41a1c", linestyle="-", label=r'T$_{Thr}$=1 eV')
+    lines.append(p_xsec_1)
+    prod_1eV = spec_tot*xsec_1eV
+    p_prod_1, = par2.plot(e_arr*1e-6,spec_tot*xsec_1eV, color=lighten_color("#e41a1c", 1.0), linestyle="-")'''
 
     xsec_10eV = total_XSec_cns(10., e_arr, Z, N)
-    p_xsec_10, = par1.plot(e_arr*1e-6,xsec_10eV, color="#377eb8", linestyle="--", label="Ethr=10eV")
+    p_xsec_10, = par1.plot(e_arr*1e-6,xsec_10eV, color="#377eb8", linestyle="--", label='T$_{Thr}$=10 eV')
     lines.append(p_xsec_10)
     prod_10eV = spec_tot*xsec_10eV
-    p_prod_10, = par2.plot(e_arr*1e-6,spec_tot*xsec_10eV, color=lighten_color("#377eb8", 0.6), linestyle="--")
+    p_prod_10, = par2.plot(e_arr*1e-6,spec_tot*xsec_10eV, color=lighten_color("#377eb8", 1.0), linestyle="--")
 
     xsec_50eV = total_XSec_cns(50., e_arr, Z, N)
-    p_xsec_50, = par1.plot(e_arr*1e-6,xsec_50eV, color="#4daf4a", linestyle=":", label="Ethr=50eV")
+    p_xsec_50, = par1.plot(e_arr*1e-6,xsec_50eV, color="#4daf4a", linestyle=":", label='T$_{Thr}$=50 eV')
     lines.append(p_xsec_50)
     prod_50eV = spec_tot*xsec_50eV
-    p_prod_50, = par2.plot(e_arr*1e-6,spec_tot*xsec_50eV, color=lighten_color('#4daf4a', 0.6), linestyle=":")
+    p_prod_50, = par2.plot(e_arr*1e-6,spec_tot*xsec_50eV, color=lighten_color('#4daf4a', 1.0), linestyle=":")
 
     xsec_100eV = total_XSec_cns(100., e_arr, Z, N)
-    p_xsec_100, = par1.plot(e_arr*1e-6,xsec_100eV, color="#984ea3", linestyle="-.", label="Ethr=100eV")
+    p_xsec_100, = par1.plot(e_arr*1e-6,xsec_100eV, color="#984ea3", linestyle="-.", label='T$_{Thr}$=100 eV')
     lines.append(p_xsec_100)
     prod_100eV = spec_tot*xsec_100eV
-    p_prod_100, = par2.plot(e_arr*1e-6,spec_tot*xsec_100eV, color=lighten_color("#984ea3", 0.6), linestyle="-.")
+    p_prod_100, = par2.plot(e_arr*1e-6,spec_tot*xsec_100eV, color=lighten_color("#984ea3", 1.0), linestyle="-.")
 
+    host.set_xlim(0, 8)
     '''host.set_xlim(0, 2)
     host.set_ylim(0, 2)
     par1.set_ylim(0, 4)
     par2.set_ylim(1, 65)'''
 
     host.set_xlabel("Neutrino Energy (MeV)")
-    #host.set_ylabel("Flux [nu/(MeV*day*cm^2)]")
+    host.set_ylabel("Arbitrary Units")
     #par1.set_ylabel("CEvNS XSec [cm^2]")
     #par2.set_ylabel("Product [nu/(MeV*day)]")
     #plt.text(9.8, 1.96*1.e-24, "1.e-40", bbox=dict(facecolor='white', alpha=1.0))
@@ -268,11 +277,17 @@ def plot_flux_xsec(nu_spec):
     #par1.tick_params(axis='y', colors='k', **tkw)
     #par2.tick_params(axis='y', colors='k', **tkw)
     host.tick_params(axis='x', **tkw)
-    host.get_yaxis().set_visible(False)
+    host.tick_params(axis='y',
+                     which='both',      # both major and minor ticks are affected
+                     left=True,      # ticks along the bottom edge are off
+                     right=False,         # ticks along the top edge are off
+                     labelleft=False, # labels along the bottom edge are off
+                     labelcolor='white')
+    #host.get_yaxis().set_visible(False)
     par1.get_yaxis().set_visible(False)
     par2.get_yaxis().set_visible(False)
 
-    host.legend(lines, [l.get_label() for l in lines], loc=(0.75, 0.1), prop={'size':9})
+    host.legend(lines, [l.get_label() for l in lines], loc=(0.65, 0.55), prop={'size':11}, framealpha=0.9)
     #plt.legend(loc=4)
 
     plt.axvline(1.8, color='k')
@@ -281,6 +296,7 @@ def plot_flux_xsec(nu_spec):
     par2.set_ylim(bottom=0)
 
     plt.title('')
+    host.grid()
     plt.savefig('plots/flux_xsec_product.png')
     fig.clf()
 
@@ -299,6 +315,29 @@ def plot_flux_xsec(nu_spec):
                "Ethr=10eV xsec, Ethr=10eV xsec, Ethr=50eV xsec, Ethr=50eV xsec,"+
                "Ethr=100eV xsec, Ethr=100eV xsec, Ethr=200eV xsec, Ethr=200eV xsec")
 
+def print_cevns_xsec(nu_spec):
+    print("CEvNS Yields (10^-43 cm^2/fission):")
+    print("\tAl2O3 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [13, 8], [26.982-13, 16.0-8], [2, 3], nu_spec)/1.e-43))
+    print("\tAl2O3 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [13, 8], [26.982-13, 16.0-8], [2, 3], nu_spec)/1.e-43))
+    print("\tSi 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [14], [28.08-14.], [1], nu_spec)/1.e-43))
+    print("\tSi 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [14], [28.08-14.], [1], nu_spec)/1.e-43))
+    print("\tZn 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [30], [35.38], [1], nu_spec)/1.e-43))
+    print("\tZn 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [30], [35.38], [1], nu_spec)/1.e-43))
+    print("\tGe 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [32], [72.64-32], [1], nu_spec)/1.e-43))
+    print("\tGe 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [32], [72.64-32], [1], nu_spec)/1.e-43))
+    print("\tCaWO4 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [20, 74, 8], [40.078-20, 183.84-74, 16.0-8], [1, 1, 4], nu_spec)/1.e-43))
+    print("\tCaWO4 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [20, 74, 8], [40.078-20, 183.84-74, 16.0-8], [1, 1, 4], nu_spec)/1.e-43))
+
 def plot_lowe_spectra(nu_spec,
                       output_path_prefix="plots/",
                       Z=32, A=72.64, isotope_name='Ge',
@@ -314,8 +353,8 @@ def plot_lowe_spectra(nu_spec,
     plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec)*1.e3,'k-',label='Total',linewidth=1.)
 
     if(lt18):
-        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec, enu_min=enu_low)*1.e3, color="#e41a1c", linestyle="--", label='enu>%.1f MeV'%(enu_low/1.e6), linewidth=2.)
-        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec, enu_max=enu_low)*1.e3, color="#377eb8", linestyle=":", label='enu<%.1f MeV'%(enu_low/1.e6), linewidth=2.)
+        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec, enu_min=enu_low)*1.e3, color="#e41a1c", linestyle="--", label='%s>%.1f MeV'%(r'E$_\nu$', enu_low/1.e6), linewidth=2.)
+        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec, enu_max=enu_low)*1.e3, color="#377eb8", linestyle=":", label='%s<%.1f MeV'%(r'E$_\nu$', enu_low/1.e6), linewidth=2.)
 
     if(u238n):
         include_other = nu_spec.include_other
@@ -346,21 +385,21 @@ def plot_lowe_spectra(nu_spec,
                                  0.081*1.e3,
                                  0.0086*1.e3, 0.23/0.38,
                                  n_cons_scale,
-                                 100.*1.e-3)*1.e3,
+                                 1000.*1.e-3)*1.e3,
                    ':', color='darkorange', label="B=100., Cons")
         plt.loglog(t_arr*1.e-3, n_back(t_arr*1.e-3,
                                  0.081*1.e3,
                                  0.0086*1.e3, 0.23/0.38,
                                  n_cons_scale,
-                                 10.*1.e-3)*1.e3,
+                                 100.*1.e-3)*1.e3,
                    ':', color='orange', label="B=10., Cons")
 
     if(neutron_shapes or neutron_levels):
         plt.loglog(t_arr*1.e-3, n_back(t_arr*1.e-3,
-                                 0.081*1.e3,
-                                 0.0086*1.e3, 0.23/0.38,
-                                         n_cons_scale,
-                                 1.*1.e-3)*1.e3,
+                                       0.081*1.e3,
+                                       0.0086*1.e3, 0.23/0.38,
+                                       n_cons_scale,
+                                       1000.*1.e-3)*1.e3,
                    color="#4daf4a", linestyle='-.',
                    linewidth=1.,
                    label="B (Conservative)")
@@ -372,10 +411,10 @@ def plot_lowe_spectra(nu_spec,
                                      1.))[0]
         n_med_scale = 1./n_med_int
         plt.loglog(t_arr*1.e-3, n_back(t_arr*1.e-3,
-                                 0.004*1.e3,
-                                 0.0005*1.e3, 0.64,
-                                 n_med_scale,
-                                 1.*1.e-3)*1.e3,
+                                       0.004*1.e3,
+                                       0.0005*1.e3, 0.64,
+                                       n_med_scale,
+                                       100.*1.e-3)*1.e3,
                    color="#984ea3", linestyle='-.',
                    linewidth=1.5,
                    label="B (Medium)")
@@ -386,10 +425,10 @@ def plot_lowe_spectra(nu_spec,
                                      1.))[0]
         n_opt_scale = 1./n_opt_int
         plt.loglog(t_arr*1.e-3, n_back(t_arr*1.e-3,
-                                 0.0004*1.e3,
-                                 0.00006*1.e3, 0.64,
-                                 n_opt_scale,
-                                 1.*1.e-3)*1.e3,
+                                       0.0004*1.e3,
+                                       0.00006*1.e3, 0.64,
+                                       n_opt_scale,
+                                       10.*1.e-3)*1.e3,
                    color="#ff7f00", linestyle='-.',
                    linewidth=2.,
                    label="B (Optimistic)")
@@ -399,10 +438,12 @@ def plot_lowe_spectra(nu_spec,
     plt.ylabel('Differential Event Rate (dru)')
     pre_label = "%s (A=%.1f)"%(isotope_name, A)
     #plt.title(site_title+" "+pre_label+" Differential Rates")
-    plt.ylim(1e-1, 5.e3)
+    plt.xlim(1.e-3, 1.0)
+    plt.ylim(1e-1, 1.e5)
     plt.axvline(x=1.e-3, color="k")
     plt.axvline(x=10.e-3, color="k")
     plt.axvline(x=50.e-3, color="k")
+    plt.grid()
     filename = output_path_prefix+'lowe_'+isotope_name
     if(lt18):
         filename += "_lt18"
@@ -471,7 +512,7 @@ def plot_lowe_spectra_isotopes(nu_spec,
                 (np.exp(-tau_1*T_keV)+fac_2*np.exp(-tau_2*T_keV))
         n_back = np.vectorize(n_back)
 
-        '''n_cons_int = spint.quad(n_back, 0.01, 0.9,
+        n_cons_int = spint.quad(n_back, 0.01, 0.9,
                             args=(0.081*1.e3,
                                   0.0086*1.e3, 0.23/0.38,
                                   1.))[0]
@@ -480,10 +521,10 @@ def plot_lowe_spectra_isotopes(nu_spec,
                                 0.081*1.e3,
                                    0.0086*1.e3, 0.23/0.38,
                                    n_cons_scale,
-                                   1.*1.e-3)*1.e3,
+                                   10.*1.e-3)*1.e3,
                color="lightgrey", linestyle=':',
                linewidth=2.,
-               label="B=1, Conservative")'''
+               label="B=10, Conservative")
         n_med_int = spint.quad(n_back, 0.01, 0.9,
                                args=(0.004*1.e3,
                                      0.0005*1.e3, 0.64,
@@ -493,10 +534,10 @@ def plot_lowe_spectra_isotopes(nu_spec,
                                        0.004*1.e3,
                                        0.0005*1.e3, 0.64,
                                        n_med_scale,
-                                       1.*1.e-3)*1.e3,
+                                       10.*1.e-3)*1.e3,
                    color="grey", linestyle=':',
                    linewidth=1.5,
-                   label="B=1, Medium")
+                   label="B=10, Medium")
 
         n_opt_int = spint.quad(n_back, 0.01, 0.9,
                                args=(0.0004*1.e3,
@@ -507,10 +548,10 @@ def plot_lowe_spectra_isotopes(nu_spec,
                                        0.0004*1.e3,
                                        0.00006*1.e3, 0.64,
                                        n_opt_scale,
-                                       1.*1.e-3)*1.e3,
+                                       10.*1.e-3)*1.e3,
                    color="k", linestyle=':',
                    linewidth=1.,
-                   label="B=1, Optimistic")
+                   label="B=10, Optimistic")
 
     plt.legend(prop={'size':9})
     plt.xlabel('Recoil Energy (keV)')
@@ -591,12 +632,6 @@ if __name__ == "__main__":
     # We need to rescale to undo this
     scale = 1./(power/200.0/1.602176565e-19)
 
-    # OLD
-    # We want to rescale to get neutrinos/MeV/fission
-    # Divide by fissions/s: 7.2e20
-    # TODO: CHECK THESE!!!
-    #scale = 1.0*5.7/(7.2e20)
-    
     nu_spec = NeutrinoSpectrum(distance, power, False, *fractions,
                                include_other=True)
     nu_spec.initialize_d_r_d_enu("u235", "root",
@@ -642,12 +677,13 @@ if __name__ == "__main__":
     plot_neutrino_spectrum_comparison(nu_spec, nu_spec_kopeikin, num_points=1000)
     plot_dsigmadT_cns_rate(nu_spec, num_points=100)
     plot_total_cns_rate(nu_spec, num_points=100)
-
     # Plot flux spectrum CEvNS xsec, and product
     plot_flux_xsec(nu_spec)
+    print_cevns_xsec(nu_spec)
 
     # Compare fission and n capture neutrino spectra
     plot_neutrino_spectrum_other(nu_spec, num_points=1000)
+
     plot_lowe_spectra(nu_spec, "plots/",
                       Z=32, A=72.64, isotope_name='Ge',
                       lt18=True, neutron_levels=False)
