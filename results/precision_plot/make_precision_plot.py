@@ -13,7 +13,7 @@ if __name__ == "__main__":
     fig = plt.figure()
     fig.patch.set_facecolor('white')
 
-    data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_medium_1.0e+01_thresh_1.0e-02/precision_ge.txt")
+    data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_medium_1.0e+02_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_var = data_var[:,0]*data_var[:,1]/365.
     # Precision in pct
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     y_var_new = spl_var(np.log10(x_var_new))
     plt.semilogx(x_var_new, y_var_new, 'r-', label="5% CEvNS Uncertainty")
 
-    data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_medium_1.0e+01_thresh_1.0e-02/precision_ge.txt")
+    data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_medium_1.0e+02_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_fix = data_fix[:,0]*data_fix[:,1]/365.
     # Precision in pct
@@ -48,26 +48,47 @@ if __name__ == "__main__":
     fig = plt.figure()
     fig.patch.set_facecolor('white')
 
+    data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_conservative_1.0e+03_thresh_1.0e-02/precision_ge.txt")
+    # Exposure in kg*years
+    x_var = data_var[:,0]*data_var[:,1]/365.
+    # Precision in pct
+    y_var = data_var[:,4]*100.
+    plt.semilogx(x_var, y_var, linestyle='-', label="B=1000, Conservative")
+
+    data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_medium_1.0e+03_thresh_1.0e-02/precision_ge.txt")
+    # Exposure in kg*years
+    x_var = data_var[:,0]*data_var[:,1]/365.
+    # Precision in pct
+    y_var = data_var[:,4]*100.
+    plt.semilogx(x_var, y_var, linestyle='-', label="B=1000, Medium")
+
+    data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_optimistic_1.0e+03_thresh_1.0e-02/precision_ge.txt")
+    # Exposure in kg*years
+    x_var = data_var[:,0]*data_var[:,1]/365.
+    # Precision in pct
+    y_var = data_var[:,4]*100.
+    plt.semilogx(x_var, y_var, linestyle='-', label="B=1000, Optimistic")
+
     data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_conservative_1.0e+02_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_var = data_var[:,0]*data_var[:,1]/365.
     # Precision in pct
     y_var = data_var[:,4]*100.
-    plt.semilogx(x_var, y_var, linestyle='-', label="B=100, Conservative")
+    plt.semilogx(x_var, y_var, linestyle='--', label="B=100, Conservative")
 
     data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_medium_1.0e+02_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_var = data_var[:,0]*data_var[:,1]/365.
     # Precision in pct
     y_var = data_var[:,4]*100.
-    plt.semilogx(x_var, y_var, linestyle='-', label="B=100, Medium")
+    plt.semilogx(x_var, y_var, linestyle='--', label="B=100, Medium")
 
     data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_optimistic_1.0e+02_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_var = data_var[:,0]*data_var[:,1]/365.
     # Precision in pct
     y_var = data_var[:,4]*100.
-    plt.semilogx(x_var, y_var, linestyle='-', label="B=100, Optimistic")
+    plt.semilogx(x_var, y_var, linestyle='--', label="B=100, Optimistic")
 
     data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_conservative_1.0e+01_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
@@ -90,27 +111,6 @@ if __name__ == "__main__":
     y_var = data_var[:,4]*100.
     plt.semilogx(x_var, y_var, linestyle='--', label="B=10, Optimistic")
 
-    data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_conservative_1.0e+00_thresh_1.0e-02/precision_ge.txt")
-    # Exposure in kg*years
-    x_var = data_var[:,0]*data_var[:,1]/365.
-    # Precision in pct
-    y_var = data_var[:,4]*100.
-    plt.semilogx(x_var, y_var, linestyle='--', label="B=1, Conservative")
-
-    data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_medium_1.0e+00_thresh_1.0e-02/precision_ge.txt")
-    # Exposure in kg*years
-    x_var = data_var[:,0]*data_var[:,1]/365.
-    # Precision in pct
-    y_var = data_var[:,4]*100.
-    plt.semilogx(x_var, y_var, linestyle='--', label="B=1, Medium")
-
-    data_var = np.loadtxt("lowe_nu_commercial_allLowE_precision_varying/ge_bkgd_optimistic_1.0e+00_thresh_1.0e-02/precision_ge.txt")
-    # Exposure in kg*years
-    x_var = data_var[:,0]*data_var[:,1]/365.
-    # Precision in pct
-    y_var = data_var[:,4]*100.
-    plt.semilogx(x_var, y_var, linestyle='--', label="B=1, Optimistic")
-
     plt.axhline(y=1., color='k', linestyle=":")
     plt.axhline(y=5., color='k', linestyle=":")
     
@@ -127,68 +127,68 @@ if __name__ == "__main__":
     fig = plt.figure()
     fig.patch.set_facecolor('white')
 
+    data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_conservative_1.0e+03_thresh_1.0e-02/precision_ge.txt")
+    # Exposure in kg*years
+    x_fix = data_fix[:,0]*data_fix[:,1]/365.
+    # Precision in pct
+    y_fix = data_fix[:,4]*100.
+    plt.semilogx(x_fix, y_fix, linestyle='-', label="B=1000, Conservative")
+
+    data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_medium_1.0e+03_thresh_1.0e-02/precision_ge.txt")
+    # Exposure in kg*years
+    x_fix = data_fix[:,0]*data_fix[:,1]/365.
+    # Precision in pct
+    y_fix = data_fix[:,4]*100.
+    plt.semilogx(x_fix, y_fix, linestyle='-', label="B=1000, Medium")
+
+    data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_optimistic_1.0e+03_thresh_1.0e-02/precision_ge.txt")
+    # Exposure in kg*years
+    x_fix = data_fix[:,0]*data_fix[:,1]/365.
+    # Precision in pct
+    y_fix = data_fix[:,4]*100.
+    plt.semilogx(x_fix, y_fix, linestyle='-', label="B=1000, Optimistic")
+
     data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_conservative_1.0e+02_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_fix = data_fix[:,0]*data_fix[:,1]/365.
     # Precision in pct
     y_fix = data_fix[:,4]*100.
-    plt.semilogx(x_fix, y_fix, linestyle='-', label="B=100, Conservative")
+    plt.semilogx(x_fix, y_fix, linestyle='--', label="B=100, Conservative")
 
     data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_medium_1.0e+02_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_fix = data_fix[:,0]*data_fix[:,1]/365.
     # Precision in pct
     y_fix = data_fix[:,4]*100.
-    plt.semilogx(x_fix, y_fix, linestyle='-', label="B=100, Medium")
+    plt.semilogx(x_fix, y_fix, linestyle='--', label="B=100, Medium")
 
     data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_optimistic_1.0e+02_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_fix = data_fix[:,0]*data_fix[:,1]/365.
     # Precision in pct
     y_fix = data_fix[:,4]*100.
-    plt.semilogx(x_fix, y_fix, linestyle='-', label="B=100, Optimistic")
+    plt.semilogx(x_fix, y_fix, linestyle='--', label="B=100, Optimistic")
 
     data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_conservative_1.0e+01_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_fix = data_fix[:,0]*data_fix[:,1]/365.
     # Precision in pct
     y_fix = data_fix[:,4]*100.
-    plt.semilogx(x_fix, y_fix, linestyle='--', label="B=10, Conservative")
+    plt.semilogx(x_fix, y_fix, linestyle=':', label="B=10, Conservative")
 
     data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_medium_1.0e+01_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_fix = data_fix[:,0]*data_fix[:,1]/365.
     # Precision in pct
     y_fix = data_fix[:,4]*100.
-    plt.semilogx(x_fix, y_fix, linestyle='--', label="B=10, Medium")
+    plt.semilogx(x_fix, y_fix, linestyle=':', label="B=10, Medium")
 
     data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_optimistic_1.0e+01_thresh_1.0e-02/precision_ge.txt")
     # Exposure in kg*years
     x_fix = data_fix[:,0]*data_fix[:,1]/365.
     # Precision in pct
     y_fix = data_fix[:,4]*100.
-    plt.semilogx(x_fix, y_fix, linestyle='--', label="B=10, Optimistic")
-
-    data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_conservative_1.0e+00_thresh_1.0e-02/precision_ge.txt")
-    # Exposure in kg*years
-    x_fix = data_fix[:,0]*data_fix[:,1]/365.
-    # Precision in pct
-    y_fix = data_fix[:,4]*100.
-    plt.semilogx(x_fix, y_fix, linestyle=':', label="B=1, Conservative")
-
-    data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_medium_1.0e+00_thresh_1.0e-02/precision_ge.txt")
-    # Exposure in kg*years
-    x_fix = data_fix[:,0]*data_fix[:,1]/365.
-    # Precision in pct
-    y_fix = data_fix[:,4]*100.
-    plt.semilogx(x_fix, y_fix, linestyle=':', label="B=1, Medium")
-
-    data_fix = np.loadtxt("lowe_nu_commercial_allLowE_precision_fixed/ge_bkgd_optimistic_1.0e+00_thresh_1.0e-02/precision_ge.txt")
-    # Exposure in kg*years
-    x_fix = data_fix[:,0]*data_fix[:,1]/365.
-    # Precision in pct
-    y_fix = data_fix[:,4]*100.
-    plt.semilogx(x_fix, y_fix, linestyle=':', label="B=1, Optimistic")
+    plt.semilogx(x_fix, y_fix, linestyle=':', label="B=10, Optimistic")
 
     plt.axhline(y=1., color='k', linestyle=":")
     plt.axhline(y=5., color='k', linestyle=":")
