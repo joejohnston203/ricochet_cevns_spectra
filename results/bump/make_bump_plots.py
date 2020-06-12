@@ -29,9 +29,9 @@ def max_bump_ratio(nu_spec, bump_frac):
         rate1 = nu_spec.d_phi_d_enu_ev(e)
         return rate1/rate0
     res = fmin(lambda x: -ratio(x), 6.e6)
-    print("bump_frac: %.3f"%bump_frac)
-    print("Max ratio occurs at: %s"%res)
-    print("Max ratio: %.2f"%ratio(res))
+    print("bump_frac: %.4f"%bump_frac)
+    print("Max ratio occurs at: %.6e"%res)
+    print("Max ratio: %.4f"%ratio(res))
 
 def plot_nu_bump(nu_spec,
                  bump_fracs=[0.01, 0.05]):
@@ -384,9 +384,9 @@ def plot_total_rate_vs_bump(nu_spec):
         plt.plot(bump_arr, rates, label=targets[i])
         outstr += "%s Rates (evts/kg/day)\n"%targets[i]
         outstr += "\tb=0.   : %.3e\n"%rates[0]
-        nu_spec.bump_frac = 0.0007
+        nu_spec.bump_frac = 0.003
         tmp_rate = total_cns_rate_an_compound([threshold], 1e7, Z_arrs[i], N_arrs[i], atom_arrs[i], nu_spec)[0]
-        outstr += "\tb=0.0007: %.3e\n"%tmp_rate
+        outstr += "\tb=0.003: %.3e\n"%tmp_rate
         outstr += "\t\tIncrease: %.3e\n"%(tmp_rate-rates[0])
         outstr += "\t\t%% Increase: %.3f\n"%((tmp_rate-rates[0])/rates[0]*100.)
         outstr += "\tb=1.   : %.3e\n"%rates[-1]
@@ -400,7 +400,7 @@ def plot_total_rate_vs_bump(nu_spec):
     plt.ylabel("Total CEvNS Rate (evts/kg/day)")
     plt.title("Total Rate, Tthr=%.1f eV"%threshold)
     plt.grid()
-    plt.axvline(x=0.0007, color='k', linestyle=":")
+    plt.axvline(x=0.003, color='k', linestyle=":")
     plt.xlim(0., 1.)
     plt.savefig('plots/total_event_rate_vs_bump_unzoomed.png')
     plt.xlim(0., 0.1)
@@ -442,10 +442,14 @@ if __name__ == "__main__":
                                  "nsim_U239_Np239_Pu239_avg",
                                  scale=scale)
 
-    bump_frac = 0.0007
+    bump_frac = 0.003
 
     # Plot bump
+    max_bump_ratio(nu_spec, bump_frac*0.9)
+    max_bump_ratio(nu_spec, bump_frac*0.95)
     max_bump_ratio(nu_spec, bump_frac)
+    max_bump_ratio(nu_spec, bump_frac*1.05)
+    max_bump_ratio(nu_spec, bump_frac*1.1)
     plot_nu_bump(nu_spec, bump_fracs=[bump_frac, 2*bump_frac])
 
     plot_cevns_bump(nu_spec, bump_fracs=[bump_frac, 2*bump_frac],
