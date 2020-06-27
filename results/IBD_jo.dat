@@ -1,0 +1,55 @@
+/////////////////////////////partlice masses///////////////////////////////
+	double CONSTANTS::Mn = 939.56542052;	//neutron mass in MeV
+	double CONSTANTS::Mp = 938.27208816;	//proton mass in MeV
+	double CONSTANTS::me = 0.51099895000;	//electron mass in MeV
+
+	double CONSTANTS::mn = 1.67492749804*pow(10.0,-24.0); //neutron mass in g
+	double CONSTANTS::mp = 1.67262192369*pow(10.0,-24.0); //proton mass in g
+
+////////////////////PDG standard constants//////////////////////////////////
+	double CONSTANTS::hBarC = 197.326978*pow(10, -13); //reduced Planck times c in MeV*cm from PDG 2019
+	double CONSTANTS::gA = 1.2723;		//axial-vector coupling constant PDG 2018
+	double CONSTANTS::Gf = 1.1663787*pow(10.0,-5.0)*(1.0/pow(10.0,6.0)); //Fermi coupling constant from PDG 2019
+	//double CONSTANTS::sW = 0.23122; 		//sine of Weinberg angle squared from PDG 2019
+	double CONSTANTS::sW = 0.23126;
+	double CONSTANTS::swError = 0.000039307; //error of Weinberg angle sine squared from PDG 2019
+	/////////IBD/////////////
+	double CONSTANTS::pref = 0.0962;	//2019
+	//double CONSTANTS::pref = 0.0956; 	//G.Mention "The Reactor Antineutrino Anomaly" (2011)
+/////////////////////////////////////////////////////////////////////////////
+
+
+	//calculates IBD cross section, code from Lorenzo
+	double DETECTOR::crossIBD(double Enu)
+	{
+		double DELTA = dict->Mn-dict->Mp;
+		double M = 0.5*(dict->Mp+dict->Mn);
+		double a = 1./M;
+		double b = 1.+DELTA/M;
+		double c = DELTA+0.5*(DELTA*DELTA-dict->me*dict->me)/M -Enu;
+		double Delta = b*b - 4.*a*c;
+		
+		double f = 1.0;            //Vector coupling constant
+									//Axial-vector coupling constant, 1.2694 in Mention, 1.2723 PDG 2018
+		//double l = dict->gA;             //Form factor ratio of the axial to vector coupling constant = f/g
+		double f2= 3.706;         //mu_p - mu_n, scaled to f value
+
+		//Order 0
+		//double Ee_0 = Enu - DELTA;                //Total positron energy at order 0, same unit as Enu (should be in MeV)
+		//double Pe_0 = sqrt(Ee_0*Ee_0 - dict->me*dict->me);    //Positron momentum at order 0, same unit as Enu (should be in MeV)
+
+		//Order 1 in 1/M    
+		double Ee_1 = (-b + sqrt(Delta))/(2.*a);     //Total positron energy at order 1, same unit as Enu (should be in MeV)
+		double Pe_1 = sqrt(Ee_1*Ee_1 - dict->me*dict->me);        //Positron momentum at order 1, same unit as Enu (should be in MeV)
+
+		double cor_recoil = ( (dict->gA*dict->gA-f*f)*DELTA/M + (dict->gA-f)*(dict->gA-f)*(Ee_1*(Ee_1+DELTA)+Pe_1*Pe_1)/M/Ee_1 ) / (f*f + 3.*dict->gA*dict->gA);
+		double cor_weakmag= (-2.*f2*dict->gA) * (Ee_1 + DELTA + Pe_1*Pe_1/Ee_1) / (f*f+3.*dict->gA*dict->gA) / M;
+
+		//Schreck. (1989): 0.0952
+		//Mention (2011):  0.0956
+		//Recent (2019):   0.0962
+		double total_cross_section = dict->pref*Ee_1*Pe_1 * (1.+cor_recoil+cor_weakmag) * 1e-42; //In cm²
+		if((Ee_1*Ee_1-dict->me*dict->me<=0) || (Enu<Ee_1+DELTA) || (total_cross_section < 0)){return 0.0;}
+   		else {return total_cross_section;}
+	} 
+

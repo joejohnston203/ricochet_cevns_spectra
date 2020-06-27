@@ -1,7 +1,7 @@
 from reactor_tools import NeutrinoSpectrum
 
 import cevns_spectra
-from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns, cevns_yield_compound
+from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns, cevns_yield_compound, ibd_yield
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -225,11 +225,11 @@ def plot_flux_xsec(nu_spec):
     p_spec, = host.plot(e_arr*1e-6,spec_tot, "k-", label=r"$\nu$ Flux", linewidth=2.)
     lines.append(p_spec)
 
-    xsec_1eV = total_XSec_cns(0., e_arr, Z, N)
-    p_xsec_1, = par1.plot(e_arr*1e-6,xsec_1eV, color="#e41a1c", linestyle="-", label=r'T$_{Thr}$=0 eV')
-    lines.append(p_xsec_1)
-    prod_1eV = spec_tot*xsec_1eV
-    p_prod_1, = par2.plot(e_arr*1e-6,spec_tot*xsec_1eV, color=lighten_color("#e41a1c", 1.0), linestyle="-")
+    xsec_0eV = total_XSec_cns(0., e_arr, Z, N)
+    p_xsec_0, = par1.plot(e_arr*1e-6,xsec_0eV, color="#e41a1c", linestyle="-", label=r'T$_{Thr}$=0 eV')
+    lines.append(p_xsec_0)
+    prod_0eV = spec_tot*xsec_0eV
+    p_prod_0, = par2.plot(e_arr*1e-6,spec_tot*xsec_0eV, color=lighten_color("#e41a1c", 1.0), linestyle="-")
 
     '''xsec_1eV = total_XSec_cns(1., e_arr, Z, N)
     p_xsec_1, = par1.plot(e_arr*1e-6,xsec_1eV, color="#e41a1c", linestyle="-", label=r'T$_{Thr}$=1 eV')
@@ -303,7 +303,7 @@ def plot_flux_xsec(nu_spec):
     # Save results to file
     np.savetxt("plots/flux_xsec_product.txt",
                np.column_stack((1e-6*e_arr,spec_tot,
-                                xsec_1eV, prod_1eV,
+                                xsec_0eV, prod_0eV,
                                 xsec_10eV, prod_10eV,
                                 xsec_50eV, prod_50eV,
                                 xsec_100eV, prod_100eV)),
@@ -311,12 +311,12 @@ def plot_flux_xsec(nu_spec):
                "Neutrino Flux: nu/(MeV*day*cm^2)\n"+
                "Cross Sections: cm^2\n"+
                "Product: nu/(MeV*day)\n"+
-               "Neutrino Energy, Neutrino Flux, Ethr=1eV xsec, Ethr=1eV xsec,"+
+               "Neutrino Energy, Neutrino Flux, Ethr=0eV xsec, Ethr=0eV xsec,"+
                "Ethr=10eV xsec, Ethr=10eV xsec, Ethr=50eV xsec, Ethr=50eV xsec,"+
                "Ethr=100eV xsec, Ethr=100eV xsec, Ethr=200eV xsec, Ethr=200eV xsec")
 
 def print_cevns_xsec(nu_spec):
-    print("CEvNS Yields (10^-43 cm^2/fission):")
+    print("CEvNS Yields per Average Atom (10^-43 cm^2/fission):")
     print("\tAl2O3 10  eV: %.3e"%
           (cevns_yield_compound(10., 1.e8, [13, 8], [26.982-13, 16.0-8], [2, 3], nu_spec)/1.e-43))
     print("\tAl2O3 100 eV: %.3e"%
@@ -337,6 +337,71 @@ def print_cevns_xsec(nu_spec):
           (cevns_yield_compound(10., 1.e8, [20, 74, 8], [40.078-20, 183.84-74, 16.0-8], [1, 1, 4], nu_spec)/1.e-43))
     print("\tCaWO4 100 eV: %.3e"%
           (cevns_yield_compound(100., 1.e8, [20, 74, 8], [40.078-20, 183.84-74, 16.0-8], [1, 1, 4], nu_spec)/1.e-43))
+    print("IBD Yield per Nucleon (10^-43 cm^2/fission): %.3e"%(ibd_yield(nu_spec)/1.e-43))
+
+    print("")
+    print("Debug Yields:")
+    print("\tAl 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [13], [26.982-13], [1], nu_spec)/1.e-43))
+    print("\tAl 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [13], [26.982-13], [1], nu_spec)/1.e-43))
+    print("\tO 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [8], [16.0-8], [1], nu_spec)/1.e-43))
+    print("\tO 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [8], [16.0-8], [1], nu_spec)/1.e-43))
+    print("\tCa 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [20], [40.078-20], [1], nu_spec)/1.e-43))
+    print("\tCa 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [20], [40.078-20], [1], nu_spec)/1.e-43))
+    print("\tW 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [74], [183.84-74], [1], nu_spec)/1.e-43))
+    print("\tW 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [74], [183.84-74], [1], nu_spec)/1.e-43))
+
+    print("")
+    print("CEvNS Yields per Gram (10^-20 cm^2/fission/g):")
+    print("\tAl2O3 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [13, 8], [26.982-13, 16.0-8], [2, 3], nu_spec, per_gram=True)/1.e-20))
+    print("\tAl2O3 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [13, 8], [26.982-13, 16.0-8], [2, 3], nu_spec, per_gram=True)/1.e-20))
+    print("\tSi 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [14], [28.08-14.], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tSi 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [14], [28.08-14.], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tZn 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [30], [35.38], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tZn 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [30], [35.38], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tGe 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [32], [72.64-32], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tGe 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [32], [72.64-32], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tCaWO4 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [20, 74, 8], [40.078-20, 183.84-74, 16.0-8], [1, 1, 4], nu_spec, per_gram=True)/1.e-20))
+    print("\tCaWO4 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [20, 74, 8], [40.078-20, 183.84-74, 16.0-8], [1, 1, 4], nu_spec, per_gram=True)/1.e-20))
+    print("IBD Yield (10^-20 cm^2/fission/g): %.3e"%(ibd_yield(nu_spec, per_gram=True)/1.e-20))
+
+    print("")
+    print("Debug Yields:")
+    print("\tAl 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [13], [26.982-13], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tAl 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [13], [26.982-13], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tO 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [8], [16.0-8], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tO 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [8], [16.0-8], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tCa 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [20], [40.078-20], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tCa 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [20], [40.078-20], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tW 10  eV: %.3e"%
+          (cevns_yield_compound(10., 1.e8, [74], [183.84-74], [1], nu_spec, per_gram=True)/1.e-20))
+    print("\tW 100 eV: %.3e"%
+          (cevns_yield_compound(100., 1.e8, [74], [183.84-74], [1], nu_spec, per_gram=True)/1.e-20))
+
+
 
 def plot_lowe_spectra(nu_spec,
                       output_path_prefix="plots/",
@@ -656,6 +721,18 @@ if __name__ == "__main__":
     nu_spec_kopeikin.initialize_d_r_d_enu("pu241", "zero")
     nu_spec_kopeikin.initialize_d_r_d_enu("other", "zero")
 
+    # Mueller spectra
+    nu_spec_mueller = NeutrinoSpectrum(nu_spec.distance, nu_spec.power, True,
+                                       0.564, 0.076, 0.304, 0.056) # Daya Bay Numbers (10.1103/PhysRevD.100.052004)
+    nu_spec_mueller.initialize_d_r_d_enu("u235", "txt",
+                                         "../../data/huber/U235-anti-neutrino-flux-250keV.dat")
+    nu_spec_mueller.initialize_d_r_d_enu("u238", "mueller")
+    nu_spec_mueller.initialize_d_r_d_enu("pu239", "txt",
+                                         "../../data/huber/Pu239-anti-neutrino-flux-250keV.dat")
+    nu_spec_mueller.initialize_d_r_d_enu("pu241", "txt",
+                                         "../../data/huber/Pu241-anti-neutrino-flux-250keV.dat")
+    nu_spec_mueller.initialize_d_r_d_enu("other", "mueller")
+
     # Store flux to file, for use by statistical code
     store_reactor_flux_kev(nu_spec, "flux_commercial_reactor_all.txt")
     store_reactor_flux_kev(nu_spec,
@@ -680,6 +757,9 @@ if __name__ == "__main__":
     # Plot flux spectrum CEvNS xsec, and product
     plot_flux_xsec(nu_spec)
     print_cevns_xsec(nu_spec)
+    print("IBD Yield Summation: %.3e [cm^2/fission]"%ibd_yield(nu_spec, per_gram=False))
+    print("IBD Yield Mueller: %.3e [cm^2/fission]"%ibd_yield(nu_spec_mueller, per_gram=False))
+
 
     # Compare fission and n capture neutrino spectra
     plot_neutrino_spectrum_other(nu_spec, num_points=1000)

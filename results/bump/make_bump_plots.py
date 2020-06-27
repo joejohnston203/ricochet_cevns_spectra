@@ -1,7 +1,7 @@
 from reactor_tools import NeutrinoSpectrum
 
 import cevns_spectra
-from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns
+from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns, total_XSec_ibd, total_XSec_ibd_0th
 
 import numpy as np
 from scipy.optimize import curve_fit, fmin
@@ -19,6 +19,57 @@ Mn = cevns_spectra.Mn
 Mn_eV = Mn*1e3
 
 s_per_day = 60.0*60.0*24.0
+
+def compare_ibd_cevns(nu_spec):
+    figure = plt.figure()
+    e_arr = np.linspace(0., 55e6, 1000)
+
+    # CEvNS Cross Sections
+    xsec_Cs = total_XSec_cns(0., e_arr, 55., 132.9-55.)
+    plt.semilogy(e_arr*1e-6,xsec_Cs*1.e38, color='blue', linestyle="--", label=r'CEvNS Cs')
+
+    xsec_I = total_XSec_cns(0., e_arr, 53., 126.9-53.)
+    plt.semilogy(e_arr*1e-6,xsec_I*1.e38, color='blue', linestyle=":", label=r'CEvNS I')
+
+    xsec_Ge = total_XSec_cns(0., e_arr, 32., 72.64-32.)
+    plt.semilogy(e_arr*1e-6,xsec_Ge*1.e38, color='green', linestyle="-.", label=r'CEvNS Ge')
+
+    # IBD Cross Section
+    xsec_ibd = total_XSec_ibd(e_arr)
+    plt.semilogy(e_arr*1e-6,xsec_ibd*1.e38, color='red', linestyle="-", label=r'IBD')
+
+    plt.xlabel("Energy (MeV)")
+    plt.ylabel(r'Cross Section ($10^{-38}$ cm$^2$)')
+    plt.legend()
+    plt.grid()
+
+    plt.xlim(0., 10.)
+    plt.ylim(1.e-6, 1.e0)
+    plt.savefig("plots/ibd_cevns_xsec.png")
+    plt.xlim(5., 55.)
+    plt.ylim(4.e-4, 3.e1)
+    plt.savefig("plots/ibd_coherent_plot.png")
+
+def plot_ibd(nu_spec):
+    figure = plt.figure()
+    e_arr = np.linspace(0., 55e6, 1000)
+
+    # IBD Cross Section
+    xsec_ibd_0th = total_XSec_ibd_0th(e_arr)
+    plt.plot(e_arr*1e-6,xsec_ibd_0th*1.e42, color='red', linestyle="--", label=r'0$^{th}$ Order')
+
+    xsec_ibd = total_XSec_ibd(e_arr)
+    plt.plot(e_arr*1e-6,xsec_ibd*1.e42, color='blue', linestyle=":", label=r'1$^{st}$ Order')
+
+    plt.xlabel("Energy (MeV)")
+    plt.ylabel(r'Cross Section ($10^{-42}$ cm$^2$)')
+    plt.title("IBD Cross Section")
+    plt.legend()
+    plt.grid()
+
+    plt.xlim(0., 10.)
+    plt.ylim(0., 10.)
+    plt.savefig("plots/ibd_xsec.png")
 
 def max_bump_ratio(nu_spec, bump_frac):
     print("Total flux: %.2e"%nu_spec.nuFlux())
@@ -442,9 +493,13 @@ if __name__ == "__main__":
                                  "nsim_U239_Np239_Pu239_avg",
                                  scale=scale)
 
-    bump_frac = 0.003
+    # IBD vs CEvNS
+    plot_ibd(nu_spec)
+    compare_ibd_cevns(nu_spec)
 
     # Plot bump
+    bump_frac = 0.003
+
     max_bump_ratio(nu_spec, bump_frac*0.9)
     max_bump_ratio(nu_spec, bump_frac*0.95)
     max_bump_ratio(nu_spec, bump_frac)
