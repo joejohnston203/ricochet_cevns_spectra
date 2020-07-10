@@ -1,7 +1,7 @@
 from reactor_tools import NeutrinoSpectrum
 
 import cevns_spectra
-from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns, total_XSec_ibd, total_XSec_ibd_0th
+from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns, total_XSec_ibd, total_XSec_ibd_0th, ibd_yield, cevns_yield_compound
 
 import numpy as np
 from scipy.optimize import curve_fit, fmin
@@ -73,16 +73,82 @@ def plot_ibd(nu_spec):
 
 def max_bump_ratio(nu_spec, bump_frac):
     print("Total flux: %.2e"%nu_spec.nuFlux())
+    nu_spec.bump_frac = bump_frac
+    print("Total yield: %.2e"%ibd_yield(nu_spec))
     def ratio(e):
         nu_spec.bump_frac = 0.0
-        rate0 = nu_spec.d_phi_d_enu_ev(e)
+        rate0 = nu_spec.d_phi_d_enu_ev(e)*total_XSec_ibd(e)
         nu_spec.bump_frac = bump_frac
-        rate1 = nu_spec.d_phi_d_enu_ev(e)
+        rate1 = nu_spec.d_phi_d_enu_ev(e)*total_XSec_ibd(e)
         return rate1/rate0
     res = fmin(lambda x: -ratio(x), 6.e6)
-    print("bump_frac: %.4f"%bump_frac)
+    print("bump_frac: %.5f"%bump_frac)
     print("Max ratio occurs at: %.6e"%res)
     print("Max ratio: %.4f"%ratio(res))
+    print("")
+
+def plot_nu_bump_ibd(nu_spec,
+                     bump_fracs=[0.01, 0.05]):
+    old_frac = nu_spec.bump_frac
+
+    # Plot unzoomed neutrino flux and ratio
+    fig1, (a0, a1) = plt.subplots(2, 1,
+                                  gridspec_kw={'height_ratios': [2, 1],})
+    plt.subplots_adjust(bottom=0.075, top=0.95)
+    #sharex=True)
+    fig1.patch.set_facecolor('white')
+    fig1.set_figheight(8.5)
+    lines_arr = ['b--', 'r-.', 'y:',
+                 'c-', 'g--', 'm-.']
+    e_arr = np.linspace(0., 1e7, 100000)
+
+    nu_spec.bump_frac = 0.
+    spec_tot = nu_spec.d_phi_d_enu_ev(e_arr)*total_XSec_ibd(e_arr)/nu_spec.nuFlux()
+    a0.plot(e_arr*1e-6,spec_tot*1e6,'k-',label="No Bump",linewidth=2)
+    ibd_yield_0 = ibd_yield(nu_spec)
+    bump_specs = []
+    ibd_yields = []
+    for i in range(len(bump_fracs)):
+        nu_spec.bump_frac = bump_fracs[i]
+        spec = nu_spec.d_phi_d_enu_ev(e_arr)*total_XSec_ibd(e_arr)/nu_spec.nuFlux()
+        bump_specs.append(spec)
+        a0.plot(e_arr*1e-6,spec*1e6,lines_arr[i],
+                 label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2)
+        ibd_yields.append(ibd_yield(nu_spec))
+
+    #a0.set_ylim(0., 2e17)
+    a0.set_xlim(0., 10.)
+    a0.set(ylabel='Reactor Spectrum * IBD xsec, cm^2/fission/MeV')
+    a0.set_title('Reactor Spectrum * IBD xsec at Commercial Reactor')
+
+    a1.plot(e_arr*1e-6,spec_tot/spec_tot,'k-',label="No Bump",linewidth=2)
+    for i in range(len(bump_fracs)):
+        spec = bump_specs[i]
+        plt.plot(e_arr*1e-6,spec/spec_tot,lines_arr[i],
+                 label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2)
+        print("Bump=%.2e, Ratio=%s"%(bump_fracs[i], spec/spec_tot))
+        print("tot int: %s"%spint.simps(spec_tot*1.e6, e_arr*1e-6))
+        print("bump int: %s"%spint.simps(spec*1.e6, e_arr*1e-6))
+        print("ibd yield no bump: %.3e cm^2/fission"%ibd_yield_0)
+        print("ibd yield bump: %.3e cm^2/fission"%ibd_yields[i])
+    a1.legend(loc=2, prop={'size':11})
+    a1.set_xlim(0., 10.)
+    a1.set_ylim(0.75, 1.25)
+    a1.set(xlabel='Neutrino Energy (MeV)', ylabel='Ratio')
+
+    '''axins = inset_axes(a0, width=3.5, height=2.5, loc=3,
+                       bbox_to_anchor=(0.24, 0.3),
+                       bbox_transform=a0.transAxes)
+    axins.plot(e_arr*1e-6,spec_tot*1e6,'k-',label="No Bump",linewidth=2)
+    for i in range(len(bump_fracs)):
+        spec = bump_specs[i]
+        axins.plot(e_arr*1e-6,spec*1e6,lines_arr[i],
+                   label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2)
+    axins.set_xlim(4.5, 7.5)
+    #axins.set_ylim(0., 4.e15)'''
+
+    plt.savefig('plots/reactor_bump_ibd_product.png')
+    nu_spec.bump_frac = old_frac
 
 def plot_nu_bump(nu_spec,
                  bump_fracs=[0.01, 0.05]):
@@ -139,7 +205,7 @@ def plot_nu_bump(nu_spec,
     axins.set_xlim(4.5, 7.5)
     axins.set_ylim(0., 4.e15)
 
-    plt.savefig('plots/reactor_bump_neutrino_spectrum.')
+    plt.savefig('plots/reactor_bump_neutrino_spectrum.png')
     nu_spec.bump_frac = old_frac
 
 def plot_cevns_bump(nu_spec, bump_fracs, cns_bounds):
@@ -303,7 +369,7 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
     lines_arr = ['--', '-.', ':', '--', ':']
 
     #t_arr = np.logspace(0, np.log10(10000), num=500)
-    t_arr = np.logspace(-2, np.log10(10000), num=100)
+    t_arr = np.logspace(-2, np.log10(10000), num=500)
 
     targets = ["Ge", "Zn", "Si",
                "Al2O3",
@@ -404,7 +470,7 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
 
     nu_spec.bump_frac = old_frac
 
-def plot_total_rate_vs_bump(nu_spec):
+def plot_total_rate_vs_bump(nu_spec, bump_frac):
     old_frac = nu_spec.bump_frac
 
     fig = plt.figure()
@@ -435,9 +501,9 @@ def plot_total_rate_vs_bump(nu_spec):
         plt.plot(bump_arr, rates, label=targets[i])
         outstr += "%s Rates (evts/kg/day)\n"%targets[i]
         outstr += "\tb=0.   : %.3e\n"%rates[0]
-        nu_spec.bump_frac = 0.003
+        nu_spec.bump_frac = bump_frac
         tmp_rate = total_cns_rate_an_compound([threshold], 1e7, Z_arrs[i], N_arrs[i], atom_arrs[i], nu_spec)[0]
-        outstr += "\tb=0.003: %.3e\n"%tmp_rate
+        outstr += "\tb=%.4f: %.3e\n"%(bump_frac, tmp_rate)
         outstr += "\t\tIncrease: %.3e\n"%(tmp_rate-rates[0])
         outstr += "\t\t%% Increase: %.3f\n"%((tmp_rate-rates[0])/rates[0]*100.)
         outstr += "\tb=1.   : %.3e\n"%rates[-1]
@@ -449,15 +515,98 @@ def plot_total_rate_vs_bump(nu_spec):
     plt.legend(prop={'size':11})
     plt.xlabel("Bump Fraction")
     plt.ylabel("Total CEvNS Rate (evts/kg/day)")
-    plt.title("Total Rate, Tthr=%.1f eV"%threshold)
+    plt.title("Total CEvNS Rate, Tthr=%.1f eV"%threshold)
     plt.grid()
-    plt.axvline(x=0.003, color='k', linestyle=":")
+    plt.axvline(x=bump_frac, color='k', linestyle=":")
+    plt.ylim(0., 50.)
     plt.xlim(0., 1.)
     plt.savefig('plots/total_event_rate_vs_bump_unzoomed.png')
     plt.xlim(0., 0.1)
-    plt.ylim(0., 100.)
     plt.savefig('plots/total_event_rate_vs_bump.png')
 
+    nu_spec.bump_frac = old_frac
+
+
+def plot_cevns_yields_vs_bump(nu_spec, bump_frac):
+    old_frac = nu_spec.bump_frac
+
+    fig = plt.figure()
+    fig.patch.set_facecolor('white')
+
+    threshold = 10.
+    bump_arr = np.linspace(0., 1., 20)
+
+    targets = ["Ge", "Zn", "Si",
+               "Al2O3",
+               "CaWO4"]
+    Z_arrs = [[32], [30], [14],
+              [13, 8],
+              [20, 74, 8]]
+    N_arrs = [[72.64-32.], [35.38], [28.08-14],
+              [26.982-13., 16.0-8.],
+              [40.078-20., 183.84-74., 16.0-8.]]
+    atom_arrs = [[1], [1], [1],
+                 [2, 3],
+                 [1, 1, 4]]
+
+    outstr = ""
+    for i in range(5):
+        yields = []
+        for b in bump_arr:
+            nu_spec.bump_frac = b
+            yields.append(cevns_yield_compound(threshold, 1e7, Z_arrs[i], N_arrs[i], atom_arrs[i], nu_spec))
+        plt.plot(bump_arr, yields, label=targets[i])
+        outstr += "%s Yields (evts/kg/day)\n"%targets[i]
+        outstr += "\tb=0.   : %.3e\n"%yields[0]
+        nu_spec.bump_frac = bump_frac
+        tmp_yield = cevns_yield_compound(threshold, 1e7, Z_arrs[i], N_arrs[i], atom_arrs[i], nu_spec)
+        outstr += "\tb=%.4f: %.3e\n"%(bump_frac, tmp_yield)
+        outstr += "\t\tIncrease: %.3e\n"%(tmp_yield-yields[0])
+        outstr += "\t\t%% Increase: %.3f\n"%((tmp_yield-yields[0])/yields[0]*100.)
+        outstr += "\tb=1.   : %.3e\n"%yields[-1]
+    print(outstr)
+    f = open("plots/bump_yields.txt", 'w')
+    f.write(outstr)
+    f.close()
+
+    plt.legend(prop={'size':11})
+    plt.xlabel("Bump Fraction")
+    plt.ylabel("Total CEvNS Yield (evts/kg/day)")
+    plt.title("Total Yield, Tthr=%.1f eV"%threshold)
+    plt.grid()
+    plt.axvline(x=bump_frac, color='k', linestyle=":")
+    plt.xlim(0., 1.)
+    plt.savefig('plots/yield_cevns_vs_bump_unzoomed.png')
+    plt.xlim(0., 0.1)
+    #plt.ylim(0., 100.)
+    plt.savefig('plots/yield_cevns_vs_bump.png')
+
+    nu_spec.bump_frac = old_frac
+
+
+def plot_ibd_yield_vs_bump(nu_spec, bump_frac):
+    old_frac = nu_spec.bump_frac
+
+    fig = plt.figure()
+    fig.patch.set_facecolor('white')
+
+    bump_arr = np.linspace(0., 1., 100)
+
+    yields = []
+    for b in bump_arr:
+        nu_spec.bump_frac = b
+        yields.append(ibd_yield(nu_spec))
+    plt.plot(bump_arr, yields)
+
+    #plt.legend(prop={'size':11})
+    plt.xlabel("Bump Fraction")
+    plt.ylabel("IBD Yield (cm^2/fission)")
+    plt.title("IBD Yield vs Bump Fraction")
+    plt.grid()
+    plt.axvline(x=bump_frac, color='k', linestyle=":")
+    plt.xlim(0., 1.)
+    plt.ylim(0., 1.e-42)
+    plt.savefig('plots/yield_ibd_vs_bump.png')
     nu_spec.bump_frac = old_frac
 
 
@@ -498,20 +647,31 @@ if __name__ == "__main__":
     compare_ibd_cevns(nu_spec)
 
     # Plot bump
-    bump_frac = 0.003
+    bump_frac = 0.018
 
     max_bump_ratio(nu_spec, bump_frac*0.9)
     max_bump_ratio(nu_spec, bump_frac*0.95)
     max_bump_ratio(nu_spec, bump_frac)
     max_bump_ratio(nu_spec, bump_frac*1.05)
     max_bump_ratio(nu_spec, bump_frac*1.1)
-    plot_nu_bump(nu_spec, bump_fracs=[bump_frac, 2*bump_frac])
+    plot_nu_bump_ibd(nu_spec, bump_fracs=[bump_frac])
+    plot_nu_bump(nu_spec, bump_fracs=[bump_frac])
 
-    plot_cevns_bump(nu_spec, bump_fracs=[bump_frac, 2*bump_frac],
+    plot_cevns_bump(nu_spec, bump_fracs=[bump_frac],
                     cns_bounds=[1.e-2, 1.e3])
-    plot_cevns_bump_split(nu_spec, bump_fracs=[bump_frac, 2.*bump_frac],
+    plot_cevns_bump_split(nu_spec, bump_fracs=[bump_frac],
                           cns_bounds=[1.e-5, 1.e4])
     plot_cevns_bump_targets(nu_spec, bump_frac=bump_frac,
                             cns_bounds=[1.e-4, 1.e4])
 
-    plot_total_rate_vs_bump(nu_spec)
+    plot_total_rate_vs_bump(nu_spec, bump_frac)
+    #plot_cevns_yields_vs_bump(nu_spec, bump_frac)
+    plot_ibd_yield_vs_bump(nu_spec, bump_frac)
+
+    print("IBD XSec @ 3 MeV: %.3e"%total_XSec_ibd(3.e6))
+    print("IBD XSec @ 6 MeV: %.3e"%total_XSec_ibd(6.e6))
+    print("Ratio of IBD @ 6 vs 3: %.1f"%(total_XSec_ibd(6.e6)/total_XSec_ibd(3.e6)))
+    print("CEvNS XSec @ 3 MeV: %.3e"%total_XSec_cns(10., 3.e6, 32., 72.64-32.))
+    print("CEvNS XSec @ 6 MeV: %.3e"%total_XSec_cns(10., 6.e6, 32., 72.64-32.))
+    print("Ratio of CEvNS @ 6 vs 3: %.1f"%(total_XSec_cns(10., 6.e6, 32., 72.64-32.)/total_XSec_cns(10., 3.e6, 32., 72.64-32.)))
+    

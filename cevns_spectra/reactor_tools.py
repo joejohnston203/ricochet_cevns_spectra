@@ -19,6 +19,7 @@ Note: Convention on units:
 import numpy as np
 from scipy.integrate import quad
 import ROOT
+from cevns_spectra import ibd_yield
 
 class NeutrinoSpectrum:
     '''
@@ -35,8 +36,11 @@ class NeutrinoSpectrum:
             (Default: u235=1., as in a research reactor)
         include_other: Whether "other" neutrinos should be included
             when calculating the flux
-        bump_frac: Fraction of the spectrum to replace with the reactor
-            bump. bump_reset will be set to true, and should be reset to
+        bump_frac: Fraction to decrease the spectrum by before adding
+            the reactor bump. The bump will be added such that the
+            IBD yield is held constant.
+
+            bump_reset will be set to true, and should be reset to
             True whenever the other spectrum parameters are changed,
             because it will force recalculation of the spectrum
             normalization before adding the bump.
@@ -68,6 +72,8 @@ class NeutrinoSpectrum:
         self.bump_frac = 0.
         self.bump_reset = True
         self._spectrum_integral = 0.
+        # Conversion such that the ibd yield stays constant when the bump is added
+        self._ibd_yield_conversion = 0.
         
 
     def get_settings_string(self):
@@ -192,15 +198,23 @@ class NeutrinoSpectrum:
 
     def d_r_d_enu_bump(self, enu):
         if(self.bump_reset):
+            self.bump_reset = False
             # Calculate normalization
             frac = self.bump_frac
             self.bump_frac = 0.
             self._spectrum_integral = quad(self.d_r_d_enu, 1800., np.inf)[0]
+            ibd_yield_init = ibd_yield(self)
+            print("ibd_yield_init: %.3e cm^2/fission"%ibd_yield_init)
+            self.bump_frac = 1.
+            self._ibd_yield_conversion = 1.
+            ibd_yield_bump = ibd_yield(self)
+            print("ibd_yield_bump: %.3e cm^2/fission"%ibd_yield_bump)
+            self._ibd_yield_conversion = ibd_yield_init/ibd_yield_bump
+            print("conversion: %.4f"%self._ibd_yield_conversion)
             self.bump_frac = frac
-            self.bump_reset = False
         mu = 5700.
         sig = 600.
-        return self.bump_frac*self._spectrum_integral*\
+        return self.bump_frac*self._spectrum_integral*self._ibd_yield_conversion*\
             1./(sig*np.sqrt(2.*np.pi))*\
             np.exp(-0.5*((enu-mu)/sig)**2)
 

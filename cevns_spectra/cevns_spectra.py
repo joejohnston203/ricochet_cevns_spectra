@@ -215,6 +215,8 @@ def total_XSec_ibd(enu):
     f2 = 3.706 # mu_p-mu_n, scaled to f value
 
     Ee1 = (-b + np.sqrt(Delta))/(2.*a) # Total positron energy at order 1
+    if(Ee1*Ee1-me*me)<=0:
+        return 0.
     Pe1 = np.sqrt(Ee1*Ee1-me*me) # Positron momentum at order 1
 
     cor_recoil = ( (gA*gA-f*f)*DELTA/M + (gA-f)*(gA-f)*(Ee1*(Ee1+DELTA)+Pe1*Pe1)/M/Ee1 ) / (f*f* + 3.*gA*gA)
@@ -222,8 +224,7 @@ def total_XSec_ibd(enu):
 
     total_cross_section = pref*Ee1*Pe1*(1.+cor_recoil+cor_weakmag)*1.e-42
 
-    if((Ee1*Ee1-me*me)<=0 or
-       Enu<Ee1+DELTA or
+    if(Enu<Ee1+DELTA or
        total_cross_section < 0.):
         return 0.
     else:
