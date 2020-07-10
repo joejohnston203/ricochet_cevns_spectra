@@ -3,3 +3,7 @@
 *~
 *.root
 *.txt
+*.png
+*.pdf
+lowe_nu_commercial_allLowE_precision*
+venv
