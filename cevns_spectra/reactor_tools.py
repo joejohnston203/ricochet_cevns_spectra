@@ -201,8 +201,10 @@ class NeutrinoSpectrum:
             self.bump_reset = False
             # Calculate normalization
             frac = self.bump_frac
+            inc_other = self.include_other
             self.bump_frac = 0.
-            self._spectrum_integral = quad(self.d_r_d_enu, 1800., np.inf)[0]
+            self.include_other = False
+            self._spectrum_integral = quad(self.d_r_d_enu, 0., np.inf)[0]
             ibd_yield_init = ibd_yield(self)
             print("ibd_yield_init: %.3e cm^2/fission"%ibd_yield_init)
             self.bump_frac = 1.
@@ -212,8 +214,9 @@ class NeutrinoSpectrum:
             self._ibd_yield_conversion = ibd_yield_init/ibd_yield_bump
             print("conversion: %.4f"%self._ibd_yield_conversion)
             self.bump_frac = frac
-        mu = 5700.
-        sig = 600.
+            self.include_other = inc_other
+        mu = 5600.
+        sig = 530.
         return self.bump_frac*self._spectrum_integral*self._ibd_yield_conversion*\
             1./(sig*np.sqrt(2.*np.pi))*\
             np.exp(-0.5*((enu-mu)/sig)**2)
@@ -223,17 +226,12 @@ class NeutrinoSpectrum:
               self.frac_u238*self.d_r_d_enu_u238(enu) +\
               self.frac_pu239*self.d_r_d_enu_pu239(enu) +\
               self.frac_pu241*self.d_r_d_enu_pu241(enu)
+        # Only modify fission portion to add bump
+        if(self.bump_frac>0. and self.bump_frac<=1.0):
+            tot *= (1-self.bump_frac)
+            tot += self.d_r_d_enu_bump(enu)
         if(self.include_other):
             tot += self.d_r_d_enu_other(enu)
-        if(self.bump_frac>0. and self.bump_frac<=1.0):
-            if(isinstance(enu, float)):
-                if(enu>1800):
-                    tot *= (1-self.bump_frac)
-            else:
-                for i,e in enumerate(enu):
-                    if(e>1800.):
-                        tot[i] = tot[i]*(1-self.bump_frac)
-            tot += self.d_r_d_enu_bump(enu)
         return tot
 
     def fis_per_s(self):

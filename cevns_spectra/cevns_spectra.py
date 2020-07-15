@@ -83,7 +83,7 @@ def dsigmadT_cns_rate_compound(T, Z_arr, N_arr, atom_arr, nu_spec,
     mass_tot = 0
     for i in range(len(Z_arr)):
         mass_tot += atom_arr[i]*A_arr[i]
-    xsec_tot = 0*np.array(T)
+    xsec_tot = 0*np.array(T).astype('float64')
     for i in range(len(Z_arr)):
         xsec_tot += atom_arr[i]*A_arr[i]/mass_tot*dsigmadT_cns_rate(T, Z_arr[i], N_arr[i], nu_spec, enu_min, enu_max)
     return xsec_tot

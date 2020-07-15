@@ -4,7 +4,7 @@ import cevns_spectra
 from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns, total_XSec_ibd, total_XSec_ibd_0th, ibd_yield, cevns_yield_compound
 
 import numpy as np
-from scipy.optimize import curve_fit, fmin
+from scipy.optimize import curve_fit, fmin, fsolve
 import scipy.integrate as spint
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
@@ -70,6 +70,140 @@ def plot_ibd(nu_spec):
     plt.xlim(0., 10.)
     plt.ylim(0., 10.)
     plt.savefig("plots/ibd_xsec.png")
+
+def fit_daya_bay_data():
+    fig1, (a0, a1) = plt.subplots(2, 1,
+                                  gridspec_kw={'height_ratios': [2, 1],})
+    plt.subplots_adjust(bottom=0.075, top=0.95)
+    #sharex=True)
+    fig1.patch.set_facecolor('white')
+    fig1.set_figheight(8.5)
+
+    # Plot data from Daya Bay paper arXiv:1607.05378v2
+    db_data = np.loadtxt("data/daya_bay_unfolded_spectrum.csv", delimiter=",")
+
+    bin_low = db_data[:,0]
+    bin_high = db_data[:,1]
+    xvals = (bin_low+bin_high)/2.
+    bin_widths = bin_high-bin_low
+
+    yvals = db_data[:,2]
+    yerrs = np.sqrt(db_data[:,3])
+
+    a0.errorbar(xvals, yvals, yerr=yerrs, xerr=bin_widths/2.,
+                 color='k', linestyle='None',
+                 label="Daya Bay Data")
+
+    # Huber/Mueller Prediction for Daya Bay
+        # Mueller spectra
+    nu_spec_mueller = NeutrinoSpectrum(nu_spec.distance, nu_spec.power, True,
+                                       0.561, 0.076, 0.307, 0.056) # Daya Bay Numbers (arXiv:1607.05378v2)
+    nu_spec_mueller.initialize_d_r_d_enu("u235", "txt",
+                                         "../../data/huber/U235-anti-neutrino-flux-250keV.dat")
+    nu_spec_mueller.initialize_d_r_d_enu("u238", "mueller")
+    nu_spec_mueller.initialize_d_r_d_enu("pu239", "txt",
+                                         "../../data/huber/Pu239-anti-neutrino-flux-250keV.dat")
+    nu_spec_mueller.initialize_d_r_d_enu("pu241", "txt",
+                                         "../../data/huber/Pu241-anti-neutrino-flux-250keV.dat")
+    nu_spec_mueller.initialize_d_r_d_enu("other", "mueller")
+
+    pred_spectrum = []
+    for i in range(len(bin_low)):
+        res = spint.quad(lambda e_eV:
+                         nu_spec_mueller.d_phi_d_enu_ev(e_eV)*\
+                         total_XSec_ibd(e_eV),
+                         bin_low[i]*1.e6, bin_high[i]*1.e6)[0]
+        res /= (bin_high[i]-bin_low[i])
+        res *= 1.e46/nu_spec.nuFlux() # Convert to cm^2/fission/MeV x 10^-46
+        pred_spectrum.append(res)
+    a0.errorbar(xvals, pred_spectrum, xerr=bin_widths/2.,
+                 color='r', linestyle='None',
+                 label="Huber/Mueller Prediction")
+
+    # Plot Settings
+    a0.legend()
+    a0.set_xlim(1.8, 8.4)
+    a0.set(ylabel=r'$\phi_{\bar{\nu}_e}*\sigma_{IBD}$ (cm^2/fission/MeV $\times$ 10^-46)')
+
+    a1.errorbar(xvals, yvals/pred_spectrum,
+                xerr=bin_widths/2., yerr=yerrs/yvals,
+                color='k', linestyle='None')
+    a1.plot(xvals, xvals*0.+1., color='k')
+    a1.set_xlim(1.8, 8.4)
+    a1.set_ylim(0.6, 1.25)
+    a1.set(xlabel="Antineutrino Energy (MeV)",
+           ylabel="Ratio")
+    plt.savefig("plots/fit_daya_bay_plot_reproduction.png")
+
+    # Fit the spectrum
+    fig1, (a0, a1) = plt.subplots(2, 1,
+                                  gridspec_kw={'height_ratios': [2, 1],})
+    plt.subplots_adjust(bottom=0.075, top=0.95)
+    #sharex=True)
+    fig1.patch.set_facecolor('white')
+    fig1.set_figheight(8.5)
+
+    def get_bin(x):
+        if(x<bin_low[0]):
+            return -1
+        for i in range(0, len(bin_low)):
+            if(bin_low[i]<=x and
+               x<bin_high[i]):
+                return i
+        return len(bin_low)
+
+    def f(x, k0, b0, mu, sig):
+        i = get_bin(x)
+        if(i<0 or i>=len(bin_low)):
+            return 0.
+        else:
+            return k0*pred_spectrum[get_bin(x)]+b0*np.exp(-(x-mu)**2/ (2*sig**2))*total_XSec_ibd(x*1.e6)
+    f = np.vectorize(f)
+    x_fit = xvals[np.logical_and(3.<xvals, xvals<7.5)]
+    y_fit = yvals[np.logical_and(3.<xvals, xvals<7.5)]
+    res = curve_fit(f, x_fit, y_fit, [1., 1.e44, 5.7, 0.5])
+    print("Unfolded Spectrum Fit Parameters: %s"%res[0])
+    a0.errorbar(xvals, yvals, yerr=yerrs, xerr=bin_widths/2.,
+                 color='k', linestyle='None',
+                 label="Daya Bay Data")
+    a0.errorbar(xvals, res[0][0]*np.array(pred_spectrum),
+                xerr=bin_widths/2.,
+                color='red', linestyle='None',
+                label="Huber/Mueller Rescaled")
+    a0.errorbar(xvals, f(xvals, *res[0]),
+                xerr=bin_widths/2.,
+                color='blue', linestyle='None',
+                label=r'Huber/Mueller+Gaussian*$\sigma_{IBD}$ Fit')
+    a0.legend()
+    a0.set_xlim(3., 7.5)
+    a0.set(ylabel=r'$\phi_{\bar{\nu}_e}*\sigma_{IBD}$ (cm^2/fission/MeV $\times$ 10^-46)',
+           title=r'Reactor Spectrum Gaussian Fit: $\mu$=%.2f, $\sigma=$%.3f'%(res[0][2], res[0][3]))
+
+    def g(x, a0, b0, mu, sig):
+        i = get_bin(x)
+        if(i<0 or i>=len(bin_low)):
+           return 1.
+        else:
+           return a0 + b0*np.exp(-(x-mu)**2/ (2*sig**2))
+    g = np.vectorize(g)
+    x_fit_ratio = xvals[np.logical_and(3.<xvals, xvals<7.5)]
+    y_fit_ratio = np.array(yvals)[np.logical_and(3.<xvals, xvals<7.5)]/np.array(pred_spectrum)[np.logical_and(3.<xvals, xvals<7.5)]
+    res = curve_fit(g, x_fit_ratio, y_fit_ratio, [0.9, 0.1, 5.7, 0.5])
+    print("Ratio Fit Parameters: %s"%res[0])
+    a1.errorbar(xvals, yvals/pred_spectrum,
+                xerr=bin_widths/2., yerr=yerrs/yvals,
+                color='k', linestyle='None')
+    a1.plot(xvals, xvals*0.+1., color='k')
+    a1.plot(xvals, xvals*0.+res[0][0], 'r--')
+    a1.errorbar(xvals, g(xvals, *res[0]),
+                xerr=bin_widths/2.,
+                color='blue', linestyle='None')
+    a1.set_xlim(3., 7.5)
+    a1.set_ylim(0.6, 1.25)
+    a1.set(xlabel="Antineutrino Energy (MeV)",
+           ylabel="Ratio",
+           title=r'Ratio Gaussian Fit: $\mu$=%.2f, $\sigma=$%.3f'%(res[0][2], res[0][3]))
+    plt.savefig("plots/fit_daya_bay_gaussian_fits.png")
 
 def max_bump_ratio(nu_spec, bump_frac):
     print("Total flux: %.2e"%nu_spec.nuFlux())
@@ -312,12 +446,6 @@ def plot_cevns_bump_split(nu_spec, bump_fracs, cns_bounds):
                   lines_arr[i],label="Non-Bump Spectrum",linewidth=2)
         a0.loglog(t_arr*1.e-3, (spec_bump-spec_0*(1.-bump_fracs[i]))*1.e3,
                   lines_arr[i][0]+'-',label="Bump Spectrum",linewidth=2)
-        print("bump_frac: %s"%bump_fracs[i])
-        print("ratio: %s"%((spec_bump-spec_0*(1.-bump_fracs[i]))/
-                           spec_0*(1.-bump_fracs[i])))
-        print("bump: %s"%(spec_bump-spec_0*(1.-bump_fracs[i])))
-        print("nonbump: %s"%(spec_0*(1.-bump_fracs[i])))
-        
         
     a0.set_ylim(cns_bounds)
     a0.set_xlim(1.e-3, 3.)
@@ -357,7 +485,8 @@ def plot_cevns_bump_split(nu_spec, bump_fracs, cns_bounds):
 
     nu_spec.bump_frac = old_frac
 
-def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
+def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds,
+                            xscale="log"):
     old_frac = nu_spec.bump_frac
 
     fig1, (a0, a1) = plt.subplots(2, 1,
@@ -368,8 +497,11 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
                   "#984ea3", "#ff7f00"]
     lines_arr = ['--', '-.', ':', '--', ':']
 
-    #t_arr = np.logspace(0, np.log10(10000), num=500)
-    t_arr = np.logspace(-2, np.log10(10000), num=500)
+    if(xscale=="log"):
+        #t_arr = np.logspace(0, np.log10(10000), num=500)
+        t_arr = np.logspace(-2, np.log10(10000), num=500)
+    else:
+        t_arr = np.linspace(0, 10000, num=500)
 
     targets = ["Ge", "Zn", "Si",
                "Al2O3",
@@ -403,8 +535,7 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
         a0.plot(t_arr*1.e-3, spec_bump*1.e3,
                 lines_arr[i],color=colors_arr[i],label=labels[i],linewidth=2)
     a0.set_xlim(1.e-5, 10.)
-    #a0.set_xscale("linear")
-    a0.set_xscale("log")
+    a0.set_xscale(xscale)
     a0.set_ylim(cns_bounds)
     a0.set_yscale("log")
     a0.set(ylabel='Differential Event Rate (dru)')
@@ -414,8 +545,6 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
     a0.axvline(x=10.e-3, color='k', linestyle=":")
     a0.axvline(x=50.e-3, color='k', linestyle=":")
 
-    for i in range(5):
-        print("%s ratio: %s"%(targets[i], bump_specs[i]/no_bump_specs[i]))
     a1.plot(t_arr*1.e-3, no_bump_specs[4]/no_bump_specs[4],
             '-', color='k', label='No Bump', linewidth=2)
     for i in range(len(targets)):
@@ -423,8 +552,7 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
         a1.plot(t_arr*1.e-3,spec_bump/no_bump_specs[i],
                  lines_arr[i],color=colors_arr[i],label=labels[i],linewidth=2)
     a1.set_xlim(1.e-5, 10.)
-    #a1.set_xscale("linear")
-    a1.set_xscale("log")
+    a1.set_xscale(xscale)
     a1.set_ylim(0.975, 1.1)
     #a1.legend(prop={'size':11}, framealpha=0.9)
     #plt.xlabel('Recoil Energy T (keV)')
@@ -433,9 +561,14 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
     a1.axvline(x=10.e-3, color='k', linestyle=":")
     a1.axvline(x=50.e-3, color='k', linestyle=":")
 
-    axins = inset_axes(a0, width=2.7, height=1.8, loc=3,
-                       bbox_to_anchor=(0.075, 0.075),
-                       bbox_transform=a0.transAxes)
+    if(xscale=="log"):
+        axins = inset_axes(a0, width=2.7, height=1.8, loc=3,
+                           bbox_to_anchor=(0.075, 0.075),
+                           bbox_transform=a0.transAxes)
+    else:
+        axins = inset_axes(a0, width=2.7, height=1.8, loc=3,
+                           bbox_to_anchor=(0.15, 0.55),
+                           bbox_transform=a0.transAxes)
     axins.xaxis.set_major_locator(plt.MaxNLocator(1))
     axins.xaxis.set_minor_locator(plt.MaxNLocator(1))
     for i in [4,3,2,1,0]:
@@ -451,7 +584,7 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
     zoom_lb = 0.4
     zoom_ub = 1.2
     axins.set_xlim(zoom_lb, zoom_ub)
-    axins.set_xscale("log")
+    axins.set_xscale(xscale)
     axins.set_ylim(2.e-1, 2.e1)
     axins.set_yscale("log")
 
@@ -466,7 +599,7 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds):
     a1.grid()
     plt.grid()
 
-    plt.savefig('plots/reactor_bump_dsigmadT_targets.png')
+    plt.savefig('plots/reactor_bump_dsigmadT_targets_'+xscale+'.png')
 
     nu_spec.bump_frac = old_frac
 
@@ -609,6 +742,168 @@ def plot_ibd_yield_vs_bump(nu_spec, bump_frac):
     plt.savefig('plots/yield_ibd_vs_bump.png')
     nu_spec.bump_frac = old_frac
 
+def integrate_bump_counts_plot(nu_spec, bump_frac):
+    old_frac = nu_spec.bump_frac
+
+    fig1, (a0, a1) = plt.subplots(2, 1,
+                                  gridspec_kw={'height_ratios': [2, 1],})
+    fig1.patch.set_facecolor('white')
+    fig1.set_figheight(9)
+    colors_arr = ["#e41a1c", "#377eb8", "#4daf4a",
+                  "#984ea3", "#ff7f00"]
+    lines_arr = ['--', '-.', ':', '--', ':']
+
+    #t_arr = np.logspace(0, np.log10(10000), num=500)
+    #t_arr = np.logspace(-2, np.log10(10000), num=50)
+    t_arr = np.linspace(0., 2500., num=50)
+
+    targets = ["Ge", "Zn", "Si",
+               "Al2O3",
+               "CaWO4"]
+    labels = ['Ge', 'Zn', 'Si',
+              r'Al$_2$O$_3$', r'CaWO$_4$']
+    Z_arrs = [[32], [30], [14],
+              [13, 8],
+              [20, 74, 8]]
+    N_arrs = [[72.64-32.], [35.38], [28.08-14],
+              [26.982-13., 16.0-8.],
+              [40.078-20., 183.84-74., 16.0-8.]]
+    atom_arrs = [[1], [1], [1],
+                 [2, 3],
+                 [1, 1, 4]]
+
+    no_bump_specs = []
+    bump_specs = []
+    #for i in range(len(targets)):
+    for i in range(1):
+        nu_spec.bump_frac = 0.
+        spec_0 = dsigmadT_cns_rate_compound(t_arr, Z_arrs[i],
+                                            N_arrs[i], atom_arrs[i],
+                                            nu_spec)
+        if(i==0):
+            a0.plot(t_arr*1.e-3,spec_0*1.e3,'-',color='k',linewidth=1)
+        no_bump_specs.append(spec_0)
+        nu_spec.bump_frac = bump_frac
+        spec_bump = dsigmadT_cns_rate_compound(t_arr, Z_arrs[i],
+                                               N_arrs[i], atom_arrs[i],
+                                               nu_spec)
+        bump_specs.append(spec_bump)
+        if(i==0):
+            a0.plot(t_arr*1.e-3, spec_bump*1.e3,
+                    lines_arr[i],color=colors_arr[i],label=labels[i],linewidth=1)
+            a0.fill_between(t_arr*1.e-3, spec_0*1.e3, spec_bump*1.e3,
+                            where= spec_bump>spec_0,
+                            color='lightgrey')
+
+    a0.set_xlim(0., 2.0)
+    a0.set_xscale("linear")
+    #a0.set_xscale("log")
+    a0.set_ylim([2.e-1, 6.e0])
+    a0.set_yscale("log")
+    #a0.set_yscale("linear")
+    a0.set(ylabel='Differential Event Rate (dru)')
+    a0.set_title("Differential Rate at Chooz Reactor, Bump Rate Integral Highlighted")
+    a0.legend(prop={'size':11}, framealpha=0.9)
+    #a0.axvline(x=1.e-3, color='k', linestyle=":")
+    #a0.axvline(x=10.e-3, color='k', linestyle=":")
+    #a0.axvline(x=50.e-3, color='k', linestyle=":")
+
+    a1.plot(t_arr*1.e-3, no_bump_specs[0]/no_bump_specs[0],
+            '-', color='k', label='No Bump', linewidth=2)
+    
+    #for i in range(len(targets)):
+    for i in range(1):
+        spec_bump = bump_specs[i]
+        if(i==0):
+            a1.plot(t_arr*1.e-3,spec_bump/no_bump_specs[i],
+                    lines_arr[i],color=colors_arr[i],label=labels[i],linewidth=2)
+            a1.fill_between(t_arr*1.e-3, no_bump_specs[0]/no_bump_specs[0], spec_bump/no_bump_specs[i],
+                            where= spec_bump>no_bump_specs[0],
+                            color='lightgrey')
+    a1.set_xlim(0., 2.0)
+    a1.set_xscale("linear")
+    #a1.set_xscale("log")
+    a1.set_ylim(0.975, 1.1)
+    #a1.legend(prop={'size':11}, framealpha=0.9)
+    #plt.xlabel('Recoil Energy T (keV)')
+    a1.set(xlabel='Recoil Energy T (keV)', ylabel='Ratio')
+    a0.axvline(x=1.e-3, color='k', linestyle=":")
+    a1.axvline(x=10.e-3, color='k', linestyle=":")
+    a1.axvline(x=50.e-3, color='k', linestyle=":")
+
+    zoom_lb = 0.4
+    zoom_ub = 1.2
+
+    # On all plots, shade in the zoomed region
+    x_fill = np.array([zoom_lb, zoom_ub])
+
+    a0.grid()
+    a1.grid()
+    plt.grid()
+
+    plt.savefig('plots/reactor_bump_integral.png')
+
+    nu_spec.bump_frac = old_frac
+
+
+def integrate_bump_counts(nu_spec, bump_frac):
+    old_frac = nu_spec.bump_frac
+
+    t_arr = np.linspace(0., 10000., num=50)
+
+    targets = ["Ge", "Zn", "Si",
+               "Al2O3",
+               "CaWO4_b1", "CaWO4_b2"]
+    Z_arrs = [[32.], [30.], [14.],
+              [13., 8.],
+              [20., 74., 8.],
+              [20., 74., 8.]]
+    N_arrs = [[72.64-32.], [35.38], [28.08-14],
+              [26.982-13., 16.0-8.],
+              [40.078-20., 183.84-74., 16.0-8.],
+              [40.078-20., 183.84-74., 16.0-8.]]
+    atom_arrs = [[1.], [1.], [1.],
+                 [2., 3.],
+                 [1., 1., 4.],
+                 [1., 1., 4.]]
+    low_guesses = [250., 300., 700., 800., 100., 700.]
+    high_guesses = [1100., 1300., 3000., 5500., 400., 5500.]
+
+    print("")
+    for i in range(len(targets)):
+        def spec_0(t):
+            nu_spec.bump_frac = 0.
+            res = dsigmadT_cns_rate_compound(t, Z_arrs[i],
+                                             N_arrs[i], atom_arrs[i],
+                                             nu_spec)
+            return res
+        def spec_bump(t):
+            nu_spec.bump_frac = bump_frac
+            res = dsigmadT_cns_rate_compound(t, Z_arrs[i],
+                                             N_arrs[i], atom_arrs[i],
+                                             nu_spec)
+            return res
+        def spec_diff(t):
+            return spec_bump(t)-spec_0(t)
+
+        print("Target: %s"%targets[i])
+        intersection_low = fsolve(lambda x : spec_0(x)[0] - spec_bump(x)[0], low_guesses[i])[0]
+        intersection_high = fsolve(lambda x : spec_0(x)[0] - spec_bump(x)[0], high_guesses[i])[0]
+        print("Intersection Low: %.1f eV"%intersection_low)
+        print("Intersection High: %.1f eV"%intersection_high)
+        print("Bump Width: %.1f eV"%(intersection_high-intersection_low))
+
+        bump_counts = spint.quad(lambda t: spec_diff(t), intersection_low, intersection_high)[0]
+        print("Bump Rate: %.5f evts/kg/day"%bump_counts)
+        print("Bump Rate per eV: %.3e"%(bump_counts/(intersection_high-intersection_low)))
+        #nu_spec.bump_frac = 0.
+        #tot_no_bump = spint.quad(lambda t: spec_0(t), 10., 10000.)[0]
+        #print("Total Rate Check (No Bump): %.2f evts/kg/day"%tot_no_bump)
+
+        print("")
+
+    nu_spec.bump_frac = old_frac
+
 
 if __name__ == "__main__":
     try:
@@ -643,13 +938,16 @@ if __name__ == "__main__":
                                  scale=scale)
 
     # IBD vs CEvNS
-    plot_ibd(nu_spec)
+    '''plot_ibd(nu_spec)
     compare_ibd_cevns(nu_spec)
+
+    # Fit Daya Bay data to get bump parameters
+    fit_daya_bay_data()'''
 
     # Plot bump
     bump_frac = 0.018
 
-    max_bump_ratio(nu_spec, bump_frac*0.9)
+    '''max_bump_ratio(nu_spec, bump_frac*0.9)
     max_bump_ratio(nu_spec, bump_frac*0.95)
     max_bump_ratio(nu_spec, bump_frac)
     max_bump_ratio(nu_spec, bump_frac*1.05)
@@ -659,10 +957,14 @@ if __name__ == "__main__":
 
     plot_cevns_bump(nu_spec, bump_fracs=[bump_frac],
                     cns_bounds=[1.e-2, 1.e3])
+
     plot_cevns_bump_split(nu_spec, bump_fracs=[bump_frac],
                           cns_bounds=[1.e-5, 1.e4])
     plot_cevns_bump_targets(nu_spec, bump_frac=bump_frac,
                             cns_bounds=[1.e-4, 1.e4])
+    plot_cevns_bump_targets(nu_spec, bump_frac=bump_frac,
+                            cns_bounds=[1.e-4, 1.e4],
+                            xscale="linear")
 
     plot_total_rate_vs_bump(nu_spec, bump_frac)
     #plot_cevns_yields_vs_bump(nu_spec, bump_frac)
@@ -674,4 +976,7 @@ if __name__ == "__main__":
     print("CEvNS XSec @ 3 MeV: %.3e"%total_XSec_cns(10., 3.e6, 32., 72.64-32.))
     print("CEvNS XSec @ 6 MeV: %.3e"%total_XSec_cns(10., 6.e6, 32., 72.64-32.))
     print("Ratio of CEvNS @ 6 vs 3: %.1f"%(total_XSec_cns(10., 6.e6, 32., 72.64-32.)/total_XSec_cns(10., 3.e6, 32., 72.64-32.)))
+
+    integrate_bump_counts_plot(nu_spec, bump_frac)'''
+    integrate_bump_counts(nu_spec, bump_frac)
     
