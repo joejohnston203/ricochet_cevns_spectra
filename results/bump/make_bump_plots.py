@@ -71,6 +71,17 @@ def plot_ibd(nu_spec):
     plt.ylim(0., 10.)
     plt.savefig("plots/ibd_xsec.png")
 
+    def f(x, a, b):
+        if x<b:
+            return 0.
+        else:
+            return a*(x-b)**2
+    f = np.vectorize(f)
+    res = curve_fit(f, e_arr, xsec_ibd_0th, [1.e-42, 1.e6])
+    print("a*(x-b)^2 Fit Parameters: %s"%res[0])
+    #plt.plot(e_arr*1.e-6, f(e_arr, *res[0])*1.e42)
+    #plt.show()
+
 def fit_daya_bay_data():
     fig1, (a0, a1) = plt.subplots(2, 1,
                                   gridspec_kw={'height_ratios': [2, 1],})
@@ -938,16 +949,16 @@ if __name__ == "__main__":
                                  scale=scale)
 
     # IBD vs CEvNS
-    '''plot_ibd(nu_spec)
+    plot_ibd(nu_spec)
     compare_ibd_cevns(nu_spec)
 
     # Fit Daya Bay data to get bump parameters
-    fit_daya_bay_data()'''
+    fit_daya_bay_data()
 
     # Plot bump
     bump_frac = 0.018
 
-    '''max_bump_ratio(nu_spec, bump_frac*0.9)
+    max_bump_ratio(nu_spec, bump_frac*0.9)
     max_bump_ratio(nu_spec, bump_frac*0.95)
     max_bump_ratio(nu_spec, bump_frac)
     max_bump_ratio(nu_spec, bump_frac*1.05)
@@ -977,6 +988,6 @@ if __name__ == "__main__":
     print("CEvNS XSec @ 6 MeV: %.3e"%total_XSec_cns(10., 6.e6, 32., 72.64-32.))
     print("Ratio of CEvNS @ 6 vs 3: %.1f"%(total_XSec_cns(10., 6.e6, 32., 72.64-32.)/total_XSec_cns(10., 3.e6, 32., 72.64-32.)))
 
-    integrate_bump_counts_plot(nu_spec, bump_frac)'''
+    integrate_bump_counts_plot(nu_spec, bump_frac)
     integrate_bump_counts(nu_spec, bump_frac)
     
