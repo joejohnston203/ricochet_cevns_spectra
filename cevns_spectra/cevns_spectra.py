@@ -244,7 +244,17 @@ def ibd_yield(nu_spec,enu_min=0.,enu_max=1.e7,
         return ibd_yield*nAvogadro*h_frac_by_mass
     else:
         return ibd_yield
-    return 
+    return
+
+def ibd_rate_per_kg_per_year(nu_spec, enu_min=0., enu_max=1.e7):
+    # neutrinos/s/target nucleon
+    rate_per_s_per_H = spint.quad(lambda enu: nu_spec.d_phi_d_enu_ev(enu)*
+                                  total_XSec_ibd(enu),
+                                  enu_min, enu_max)[0]
+    h_frac_by_mass = 1./7.
+    rate_per_s_per_g = rate_per_s_per_H*nAvogadro*h_frac_by_mass
+    rate_per_year_per_kg = rate_per_s_per_g*1.e3*(365.*24.*60.*60.)
+    return rate_per_year_per_kg
 
 # IBD XSec to 0th order in 1/M
 # 10.1103/PhysRevD.60.053003
