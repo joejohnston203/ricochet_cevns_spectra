@@ -15,6 +15,8 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import os
 
+plt.rcParams.update({'font.size': 16})
+
 Mn = cevns_spectra.Mn
 Mn_eV = Mn*1e3
 
@@ -249,7 +251,7 @@ def plot_nu_bump_ibd(nu_spec,
 
     nu_spec.bump_frac = 0.
     spec_tot = nu_spec.d_phi_d_enu_ev(e_arr)*total_XSec_ibd(e_arr)/nu_spec.nuFlux()
-    a0.plot(e_arr*1e-6,spec_tot*1e6,'k-',label="No Bump",linewidth=2)
+    a0.plot(e_arr*1e-6,spec_tot*1e6,'k-',label="No Distortion",linewidth=2)
     ibd_yield_0 = ibd_yield(nu_spec)
     bump_specs = []
     ibd_yields = []
@@ -266,7 +268,7 @@ def plot_nu_bump_ibd(nu_spec,
     a0.set(ylabel='Reactor Spectrum * IBD xsec, cm^2/fission/MeV')
     a0.set_title('Reactor Spectrum * IBD xsec at Commercial Reactor')
 
-    a1.plot(e_arr*1e-6,spec_tot/spec_tot,'k-',label="No Bump",linewidth=2)
+    a1.plot(e_arr*1e-6,spec_tot/spec_tot,'k-',label="No Distortion",linewidth=2)
     for i in range(len(bump_fracs)):
         spec = bump_specs[i]
         plt.plot(e_arr*1e-6,spec/spec_tot,lines_arr[i],
@@ -284,7 +286,7 @@ def plot_nu_bump_ibd(nu_spec,
     '''axins = inset_axes(a0, width=3.5, height=2.5, loc=3,
                        bbox_to_anchor=(0.24, 0.3),
                        bbox_transform=a0.transAxes)
-    axins.plot(e_arr*1e-6,spec_tot*1e6,'k-',label="No Bump",linewidth=2)
+    axins.plot(e_arr*1e-6,spec_tot*1e6,'k-',label="No Distortion",linewidth=2)
     for i in range(len(bump_fracs)):
         spec = bump_specs[i]
         axins.plot(e_arr*1e-6,spec*1e6,lines_arr[i],
@@ -312,29 +314,31 @@ def plot_nu_bump(nu_spec,
 
     nu_spec.bump_frac = 0.
     spec_tot = s_per_day*nu_spec.d_phi_d_enu_ev(e_arr)
-    a0.plot(e_arr*1e-6,spec_tot*1e6,'k-',label="No Bump",linewidth=2)
+    a0.plot(e_arr*1e-6,spec_tot*1e6,'k-',label="No Distortion",linewidth=2)
     bump_specs = []
     for i in range(len(bump_fracs)):
         nu_spec.bump_frac = bump_fracs[i]
         spec = s_per_day*nu_spec.d_phi_d_enu_ev(e_arr)
         bump_specs.append(spec)
         a0.plot(e_arr*1e-6,spec*1e6,lines_arr[i],
-                 label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2)
+                 label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2,
+                 color='red')
 
     a0.set_ylim(0., 2e17)
     a0.set_xlim(0., 10.)
     a0.set(ylabel='Flux, nu/(MeV*day*cm^2)')
-    a0.set_title('Neutrino Flux at Commercial Reactor')
+    #a0.set_title('Neutrino Flux at Commercial Reactor')
 
-    a1.plot(e_arr*1e-6,spec_tot/spec_tot,'k-',label="No Bump",linewidth=2)
+    a1.plot(e_arr*1e-6,spec_tot/spec_tot,'k-',label="No Distortion",linewidth=2)
     for i in range(len(bump_fracs)):
         spec = bump_specs[i]
         plt.plot(e_arr*1e-6,spec/spec_tot,lines_arr[i],
-                 label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2)
+                 label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2,
+                 color='red')
         print("Bump=%.2e, Ratio=%s"%(bump_fracs[i], spec/spec_tot))
         print("tot int: %s"%spint.simps(spec_tot*1.e6, e_arr*1e-6))
         print("bump int: %s"%spint.simps(spec*1.e6, e_arr*1e-6))
-    a1.legend(loc=2, prop={'size':11})
+    #a1.legend(loc=2, prop={'size':11})
     a1.set_xlim(0., 10.)
     a1.set_ylim(0.75, 1.25)
     a1.set(xlabel='Neutrino Energy (MeV)', ylabel='Ratio')
@@ -342,15 +346,17 @@ def plot_nu_bump(nu_spec,
     axins = inset_axes(a0, width=3.5, height=2.5, loc=3,
                        bbox_to_anchor=(0.24, 0.3),
                        bbox_transform=a0.transAxes)
-    axins.plot(e_arr*1e-6,spec_tot*1e6,'k-',label="No Bump",linewidth=2)
+    axins.plot(e_arr*1e-6,spec_tot*1e6,'k-',label="No Distortion",linewidth=2)
     for i in range(len(bump_fracs)):
         spec = bump_specs[i]
         axins.plot(e_arr*1e-6,spec*1e6,lines_arr[i],
-                   label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2)
+                   label="Bump=%.2f%%"%(100.*bump_fracs[i]),linewidth=2,
+                 color='red')
     axins.set_xlim(4.5, 7.5)
     axins.set_ylim(0., 4.e15)
+    axins.set(xlabel=r'E$_\nu$ (MeV)')
 
-    plt.savefig('plots/reactor_bump_neutrino_spectrum.png')
+    plt.savefig('plots/reactor_bump_neutrino_spectrum.pdf', bbox_inches='tight')
     nu_spec.bump_frac = old_frac
 
 def plot_cevns_bump(nu_spec, bump_fracs, cns_bounds):
@@ -370,7 +376,7 @@ def plot_cevns_bump(nu_spec, bump_fracs, cns_bounds):
 
     nu_spec.bump_frac = 0.
     spec_0 = dsigmadT_cns_rate(t_arr, 32, 72.64-32., nu_spec)
-    a0.plot(t_arr*1.e-3,spec_0*1.e3,'k-',label='No Bump',linewidth=2)
+    a0.plot(t_arr*1.e-3,spec_0*1.e3,'k-',label='No Distortion',linewidth=2)
     bump_specs = []
     for i in range(len(bump_fracs)):
         nu_spec.bump_frac = bump_fracs[i]
@@ -388,7 +394,7 @@ def plot_cevns_bump(nu_spec, bump_fracs, cns_bounds):
     a0.axvline(x=10.e-3, color='k', linestyle=":")
     a0.axvline(x=50.e-3, color='k', linestyle=":")
 
-    a1.plot(t_arr*1.e-3, spec_0/spec_0, 'k-', label='No Bump', linewidth=2)
+    a1.plot(t_arr*1.e-3, spec_0/spec_0, 'k-', label='No Distortion', linewidth=2)
     for i in range(len(bump_fracs)):
         spec_bump = bump_specs[i]
         a1.plot(t_arr*1.e-3,spec_bump/spec_0,
@@ -408,7 +414,7 @@ def plot_cevns_bump(nu_spec, bump_fracs, cns_bounds):
                        bbox_transform=a0.transAxes)
     axins.xaxis.set_major_locator(plt.MaxNLocator(1))
     axins.xaxis.set_minor_locator(plt.MaxNLocator(1))
-    axins.plot(t_arr*1.e-3,spec_0*1.e3,'k-',label='No Bump',linewidth=2)
+    axins.plot(t_arr*1.e-3,spec_0*1.e3,'k-',label='No Distortion',linewidth=2)
     for i in range(len(bump_fracs)):
         spec_bump = bump_specs[i]
         axins.plot(t_arr*1.e-3, spec_bump*1.e3,
@@ -467,7 +473,7 @@ def plot_cevns_bump_split(nu_spec, bump_fracs, cns_bounds):
     a0.axvline(x=10.e-3, color='k', linestyle=":")
     a0.axvline(x=50.e-3, color='k', linestyle=":")
 
-    a1.semilogx(t_arr*1.e-3, spec_0/spec_0, 'k-', label='No Bump', linewidth=2)
+    a1.semilogx(t_arr*1.e-3, spec_0/spec_0, 'k-', label='No Distortion', linewidth=2)
     for i in range(len(bump_fracs)):
         spec_bump = bump_specs[i]
         a1.semilogx(t_arr*1.e-3,spec_bump/spec_0,
@@ -484,7 +490,7 @@ def plot_cevns_bump_split(nu_spec, bump_fracs, cns_bounds):
     '''axins = inset_axes(a0, width=3.5, height=2.5, loc=3,
                        bbox_to_anchor=(0.24, 0.3),
                        bbox_transform=a0.transAxes)
-    axins.loglog(t_arr*1.e-3,spec_0*1.e3,'k-',label='No Bump',linewidth=2)
+    axins.loglog(t_arr*1.e-3,spec_0*1.e3,'k-',label='No Distortion',linewidth=2)
     for i in range(len(bump_fracs)):
         spec_bump = bump_specs[i]
         axins.loglog(t_arr*1.e-3, spec_bump*1.e3,
@@ -510,7 +516,7 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds,
 
     if(xscale=="log"):
         #t_arr = np.logspace(0, np.log10(10000), num=500)
-        t_arr = np.logspace(-2, np.log10(10000), num=500)
+        t_arr = np.logspace(-2, np.log10(10000), num=250)
     else:
         t_arr = np.linspace(0, 10000, num=500)
 
@@ -550,14 +556,13 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds,
     a0.set_ylim(cns_bounds)
     a0.set_yscale("log")
     a0.set(ylabel='Differential Event Rate (dru)')
-    a0.set_title("Differential Rate at Chooz Reactor")
-    a0.legend(prop={'size':11}, framealpha=0.9)
+    #a0.set_title("Differential Rate at Chooz Reactor")
     a0.axvline(x=1.e-3, color='k', linestyle=":")
     a0.axvline(x=10.e-3, color='k', linestyle=":")
     a0.axvline(x=50.e-3, color='k', linestyle=":")
 
     a1.plot(t_arr*1.e-3, no_bump_specs[4]/no_bump_specs[4],
-            '-', color='k', label='No Bump', linewidth=2)
+            '-', color='k', label='No Distortion', linewidth=2)
     for i in range(len(targets)):
         spec_bump = bump_specs[i]
         a1.plot(t_arr*1.e-3,spec_bump/no_bump_specs[i],
@@ -571,10 +576,11 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds,
     a0.axvline(x=1.e-3, color='k', linestyle=":")
     a1.axvline(x=10.e-3, color='k', linestyle=":")
     a1.axvline(x=50.e-3, color='k', linestyle=":")
+    a1.legend(prop={'size':14}, framealpha=0.99)
 
     if(xscale=="log"):
         axins = inset_axes(a0, width=2.7, height=1.8, loc=3,
-                           bbox_to_anchor=(0.075, 0.075),
+                           bbox_to_anchor=(0.1, 0.15),
                            bbox_transform=a0.transAxes)
     else:
         axins = inset_axes(a0, width=2.7, height=1.8, loc=3,
@@ -598,6 +604,7 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds,
     axins.set_xscale(xscale)
     axins.set_ylim(2.e-1, 2.e1)
     axins.set_yscale("log")
+    axins.set(xlabel='Recoil Energy T (keV)')
 
     # On all plots, shade in the zoomed region
     x_fill = np.array([zoom_lb, zoom_ub])
@@ -610,7 +617,8 @@ def plot_cevns_bump_targets(nu_spec, bump_frac, cns_bounds,
     a1.grid()
     plt.grid()
 
-    plt.savefig('plots/reactor_bump_dsigmadT_targets_'+xscale+'.png')
+    plt.savefig('plots/reactor_bump_dsigmadT_targets_'+xscale+'.pdf',
+                bbox_inches='tight')
 
     nu_spec.bump_frac = old_frac
 
@@ -820,7 +828,7 @@ def integrate_bump_counts_plot(nu_spec, bump_frac):
     #a0.axvline(x=50.e-3, color='k', linestyle=":")
 
     a1.plot(t_arr*1.e-3, no_bump_specs[0]/no_bump_specs[0],
-            '-', color='k', label='No Bump', linewidth=2)
+            '-', color='k', label='No Distortion', linewidth=2)
     
     #for i in range(len(targets)):
     for i in range(1):
@@ -909,7 +917,7 @@ def integrate_bump_counts(nu_spec, bump_frac):
         print("Bump Rate per eV: %.3e"%(bump_counts/(intersection_high-intersection_low)))
         #nu_spec.bump_frac = 0.
         #tot_no_bump = spint.quad(lambda t: spec_0(t), 10., 10000.)[0]
-        #print("Total Rate Check (No Bump): %.2f evts/kg/day"%tot_no_bump)
+        #print("Total Rate Check (No Distortion): %.2f evts/kg/day"%tot_no_bump)
 
         print("")
 
@@ -947,32 +955,37 @@ if __name__ == "__main__":
                                  "../../../final_spectra/sum_U_Pu_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW.root",
                                  "nsim_U239_Np239_Pu239_avg",
                                  scale=scale)
-
+    '''
     # IBD vs CEvNS
     plot_ibd(nu_spec)
     compare_ibd_cevns(nu_spec)
 
     # Fit Daya Bay data to get bump parameters
     fit_daya_bay_data()
-
+    '''
     # Plot bump
     bump_frac = 0.018
-
+    '''
     max_bump_ratio(nu_spec, bump_frac*0.9)
     max_bump_ratio(nu_spec, bump_frac*0.95)
     max_bump_ratio(nu_spec, bump_frac)
     max_bump_ratio(nu_spec, bump_frac*1.05)
     max_bump_ratio(nu_spec, bump_frac*1.1)
+
     plot_nu_bump_ibd(nu_spec, bump_fracs=[bump_frac])
+    '''
     plot_nu_bump(nu_spec, bump_fracs=[bump_frac])
+    '''
 
     plot_cevns_bump(nu_spec, bump_fracs=[bump_frac],
                     cns_bounds=[1.e-2, 1.e3])
 
     plot_cevns_bump_split(nu_spec, bump_fracs=[bump_frac],
                           cns_bounds=[1.e-5, 1.e4])
+    '''
     plot_cevns_bump_targets(nu_spec, bump_frac=bump_frac,
                             cns_bounds=[1.e-4, 1.e4])
+    '''
     plot_cevns_bump_targets(nu_spec, bump_frac=bump_frac,
                             cns_bounds=[1.e-4, 1.e4],
                             xscale="linear")
@@ -990,4 +1003,4 @@ if __name__ == "__main__":
 
     integrate_bump_counts_plot(nu_spec, bump_frac)
     integrate_bump_counts(nu_spec, bump_frac)
-    
+    '''

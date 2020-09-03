@@ -14,6 +14,8 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import os
 
+plt.rcParams.update({'font.size': 18})
+
 Mn = cevns_spectra.Mn
 Mn_eV = Mn*1e3
 
@@ -287,7 +289,7 @@ def plot_flux_xsec(nu_spec):
     par1.get_yaxis().set_visible(False)
     par2.get_yaxis().set_visible(False)
 
-    host.legend(lines, [l.get_label() for l in lines], loc=(0.65, 0.55), prop={'size':11}, framealpha=0.9)
+    host.legend(lines, [l.get_label() for l in lines], loc=(0.585, 0.5), prop={'size':14}, framealpha=0.9)
     #plt.legend(loc=4)
 
     plt.axvline(1.8, color='k')
@@ -297,7 +299,7 @@ def plot_flux_xsec(nu_spec):
 
     plt.title('')
     host.grid()
-    plt.savefig('plots/flux_xsec_product.png')
+    plt.savefig('plots/flux_xsec_product.pdf', bbox_inches='tight')
     fig.clf()
 
     # Save results to file
@@ -413,13 +415,13 @@ def plot_lowe_spectra(nu_spec,
                       neutron_levels=True):
     t_arr = np.logspace(0, 3, num=100)
 
-    fig3 = plt.figure()
+    fig3 = plt.figure(figsize=[8., 4.8])
     fig3.patch.set_facecolor('white')
-    plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec)*1.e3,'k-',label='Total',linewidth=1.)
+    plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec)*1.e3,'k-',label='CEvNS Total',linewidth=1.)
 
     if(lt18):
-        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec, enu_min=enu_low)*1.e3, color="#e41a1c", linestyle="--", label='%s>%.1f MeV'%(r'E$_\nu$', enu_low/1.e6), linewidth=2.)
-        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec, enu_max=enu_low)*1.e3, color="#377eb8", linestyle=":", label='%s<%.1f MeV'%(r'E$_\nu$', enu_low/1.e6), linewidth=2.)
+        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec, enu_min=enu_low)*1.e3, color="#e41a1c", linestyle="--", label='CEvNS %s>%.1f MeV'%(r'E$_\nu$', enu_low/1.e6), linewidth=2.)
+        plt.loglog(t_arr*1.e-3,dsigmadT_cns_rate(t_arr, Z, A-Z, nu_spec, enu_max=enu_low)*1.e3, color="#377eb8", linestyle=":", label='CEvNS %s<%.1f MeV'%(r'E$_\nu$', enu_low/1.e6), linewidth=2.)
 
     if(u238n):
         include_other = nu_spec.include_other
@@ -498,7 +500,9 @@ def plot_lowe_spectra(nu_spec,
                    linewidth=2.,
                    label="B (Optimistic)")
 
-    plt.legend(prop={'size':9})
+    ax = plt.gca()
+    plt.subplots_adjust(right=0.8)
+    ax.legend(bbox_to_anchor=(1.04,1), borderaxespad=0, prop={'size':14})
     plt.xlabel('Recoil Energy (keV)')
     plt.ylabel('Differential Event Rate (dru)')
     pre_label = "%s (A=%.1f)"%(isotope_name, A)
@@ -518,8 +522,8 @@ def plot_lowe_spectra(nu_spec,
         filename += "_nShapes"
     if(neutron_levels):
         filename += "_nLevels"
-    filename += '.png'
-    plt.savefig(filename)
+    filename += '.pdf'
+    plt.savefig(filename,  bbox_inches='tight')
     fig3.clf()
 
 def plot_lowe_spectra_isotopes(nu_spec,
@@ -678,6 +682,16 @@ def calc_lowe_fraction(nu_spec,
                (output_path_prefix,isotope_name),
                np.column_stack((t_arr, frac)),
                header="# T (eV), Fraction")
+    flux_lt_18 = spint.quad(lambda enu: nu_spec.d_phi_d_enu_ev(enu),
+                            0., 1.8e6)[0]
+    flux_tot = spint.quad(lambda enu: nu_spec.d_phi_d_enu_ev(enu),
+                            0., 20.e6)[0]
+    print("Isotope: %s"%isotope_name)
+    print("\tFraction of flux <1.8 MeV: %.4f"%(flux_lt_18/flux_tot))
+    for thresh in [0.0001, 1., 10., 50.]:
+        frac = total_cns_rate_an_compound(thresh, enu_low, Z_arr, N_arr, weights_arr, nu_spec)/\
+        total_cns_rate_an_compound(thresh, 1e7, Z_arr, N_arr, weights_arr, nu_spec)
+        print("\tT=%.2e, Frac=%.5f"%(thresh,frac))
 
 if __name__ == "__main__":
     try:
