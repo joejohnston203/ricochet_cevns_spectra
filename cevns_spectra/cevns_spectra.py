@@ -17,7 +17,7 @@ from scipy.interpolate import UnivariateSpline
 keVPerGeV       = 1e6             # [keV / GeV]
 hbarc 	        = 0.19732705*keVPerGeV # [keV fm]
 fmPercm		= 1.0e13	# [fm / cm]
-sin2thetaW      = 0.2387
+sin2thetaW      = 0.2387        # Value at low energies
 cLight	        = 3.0e8           # [m / s]
 nAvogadro       = 6.022e23
 Mn              = 0.93149410242 * keVPerGeV # keV
