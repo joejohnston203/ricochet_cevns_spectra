@@ -15,14 +15,14 @@ from scipy.interpolate import UnivariateSpline
 
 
 keVPerGeV       = 1e6             # [keV / GeV]
-hbarc 	        = 0.197*keVPerGeV # [keV fm]
+hbarc 	        = 0.19732705*keVPerGeV # [keV fm]
 fmPercm		= 1.0e13	# [fm / cm]
 sin2thetaW      = 0.2387
 cLight	        = 3.0e8           # [m / s]
 nAvogadro       = 6.022e23
-Mn              = 0.931 * keVPerGeV # keV
+Mn              = 0.93149410242 * keVPerGeV # keV
 Mn_eV           = Mn*1e3          # eV
-Gfermi	        = (1.16637e-5 / (keVPerGeV**2.))*(hbarc/fmPercm) # [cm / keV]
+Gfermi	        = (1.1663787e-5 / (keVPerGeV**2.))*(hbarc/fmPercm) # [cm / keV]
 Gfermi_cm_eV    = Gfermi*1e-3
 Me              = 0.511*1e6       # eV
 fineStruct      = 1.0/137.036
@@ -31,7 +31,7 @@ electronCharge  = joulePereV      # C
 s_per_day       = 60.0*60.0*24.0
 
 #roi_max = 1000 # Region of interest is detector threshold to 1000 eV
-roi_max = 1000000 # Don't use a reasonable max
+roi_max = 1000000 # Don't use a reasonable max- integrate all energies
 
 def t_max(enu,M):
     if(enu>0):
@@ -101,6 +101,25 @@ def total_XSec_cns(Tmin,enu,Z,N):
     return Gfermi_cm_eV**2/4.0/np.pi * Qweak**2 *M*\
         (t_max_-Tmin-M/2.0/enu**2*(t_max_**2/2.0-Tmin**2/2.0))
 total_XSec_cns = np.vectorize(total_XSec_cns)
+
+def total_XSec_cns_compound(Tmin, enu,
+                            Z_arr, N_arr, atom_arr):
+    atoms = 0
+    for i in range(len(Z_arr)):
+        atoms += atom_arr[i]
+    xsec = 0
+    for i in range(len(atom_arr)):
+        xsec += total_XSec_cns(Tmin, enu, Z_arr[i], N_arr[i])*\
+            atom_arr[i]/atoms
+    return xsec
+
+def total_XSec_cns_compound_in_bin(Tmin, enu_min, enu_max,
+                                   Z_arr, N_arr, atom_arr):
+    return spint.quad(lambda enu:
+                      total_XSec_cns_compound(Tmin, enu,
+                                              Z_arr, N_arr, atom_arr),
+                      enu_min, enu_max)[0]
+
 
 def cevns_yield(Tmin,enu_max,Z,N,nu_spec,enu_min=0.):
     ''' Return yield in cm^2 per fission'''
