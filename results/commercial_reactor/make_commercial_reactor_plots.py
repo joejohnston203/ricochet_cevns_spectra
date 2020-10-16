@@ -681,7 +681,7 @@ if __name__ == "__main__":
                                          "../../data/huber/Pu241-anti-neutrino-flux-250keV.dat")
     nu_spec_mueller.initialize_d_r_d_enu("other", "mueller")
 
-    '''# Store flux to file, for use by statistical code
+    # Store flux to file, for use by statistical code
     store_reactor_flux_kev(nu_spec, "flux_commercial_reactor_all.txt")
     store_reactor_flux_kev(nu_spec,
                            "flux_commercial_reactor_lt1800.txt",
@@ -715,7 +715,6 @@ if __name__ == "__main__":
     print_cevns_xsec(nu_spec)
     print("IBD Yield Summation: %.3e [cm^2/fission]"%ibd_yield(nu_spec, per_gram=False))
     print("IBD Yield Mueller: %.3e [cm^2/fission]"%ibd_yield(nu_spec_mueller, per_gram=False))
-    '''
 
     # Compare fission and n capture neutrino spectra
     plot_neutrino_spectrum_other(nu_spec, num_points=1000)
