@@ -1,7 +1,7 @@
 from reactor_tools import NeutrinoSpectrum
 
 import cevns_spectra
-from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound
+from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, get_atomic_arrs
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -89,11 +89,12 @@ def plot_dsigmadT_cns_rate(nu_spec,
     fig3.patch.set_facecolor('white')
     plt.ylim(bounds)
     plt.xlim(1e0, 1e3)
-    plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, 14, 28.08-14, nu_spec),'g-',label='Si (A=28.1)',linewidth=2)
-    plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, 30, 35.38, nu_spec),'b-',label='Zn (A=64.4)',linewidth=2)
-    plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, 32, 72.64-32., nu_spec),'r-',label='Ge (A=72.6)',linewidth=2)
-    plt.loglog(t_arr,dsigmadT_cns_rate_compound(t_arr, [13, 8], [26.982-13., 16.0-8.], [2, 3], nu_spec),'c-.',label='Al2O3 (A~20)',linewidth=2)
-    plt.loglog(t_arr,dsigmadT_cns_rate_compound(t_arr, [20, 74, 8], [40.078-20., 183.84-74., 16.0-8.], [1, 1, 4], nu_spec),'m:',label='CaWO4 (A~48)',linewidth=2)
+    labels = ["Si", "Zn", "Ge", "Al2O3", "CaWO4"]
+    lines = ['g-', 'b-', 'r-', 'c-.', 'm:']
+    widths = [1,1,1,2,2]
+    for i in range(len(labels)):
+        (Z_arr, N_arr, atom_arr) = get_atomic_arrs(labels[i])
+        plt.loglog(t_arr,dsigmadT_cns_rate_compound(t_arr, Z_arr, N_arr, atom_arr, nu_spec),lines[i],label=labels[i],linewidth=widths[i])
     plt.legend(prop={'size':11})
     plt.xlabel('Recoil Energy T (eV)')
     plt.ylabel('Differential Event Rate (Events/kg/day/eV)')
@@ -110,11 +111,12 @@ def plot_total_cns_rate(nu_spec, num_points=100):
     
     fig4 = plt.figure()
     fig4.patch.set_facecolor('white')
-    plt.loglog(t_arr,total_cns_rate_an(t_arr, 1e7, 14, 28.08-14, nu_spec),'g-',label='Si (A=28.1)',linewidth=2)
-    plt.loglog(t_arr,total_cns_rate_an(t_arr, 1e7, 30, 35.38, nu_spec),'b-',label='Zn (A=64.4)',linewidth=2)
-    plt.loglog(t_arr,total_cns_rate_an(t_arr, 1e7, 32, 72.64-32., nu_spec),'r-',label='Ge (A=72.6)',linewidth=2)
-    plt.loglog(t_arr,total_cns_rate_an_compound(t_arr, 1e7, [13, 8], [26.982-13., 16.0-8.], [2, 3], nu_spec),'c-.',label='Al2O3 (A~20)',linewidth=2)
-    plt.loglog(t_arr,total_cns_rate_an_compound(t_arr, 1e7, [20, 74, 8], [40.078-20., 183.84-74., 16.0-8.], [1, 1, 4], nu_spec),'m:',label='CaWO4 (A~48)',linewidth=2)
+    labels = ["Si", "Zn", "Ge", "Al2O3", "CaWO4"]
+    lines = ['g-', 'b-', 'r-', 'c-.', 'm:']
+    widths = [1,1,1,2,2]
+    for i in range(len(labels)):
+        (Z_arr, N_arr, atom_arr) = get_atomic_arrs(labels[i])
+        plt.loglog(t_arr,total_cns_rate_an_compound(t_arr, 1e7, Z_arr, N_arr, atom_arr, nu_spec),lines[i],label=labels[i],linewidth=widths[i])
     plt.legend(prop={'size':11})
     plt.xlabel('Recoil Threshold (eV)')
     plt.ylabel('Event Rate (Events/kg/day)')
@@ -130,33 +132,32 @@ if __name__ == "__main__":
     except OSError as e:
         pass
 
-    # Assume entire contributino is U-235
+    # The averaged spectrum is stored in U-235
     fractions = [1.0, 0.0, 0.0, 0.0]
 
     # Reasonable research reactor assumptions
-    power = 50 # MW
-    distance = 700 # cm
-    # The spectra are already stored as neutrinos/fission
-    scale = 1.0
+    power = 58.3 # 58.3 MW is stored in the file: see scale
+    distance = 800 # cm
+    # The stored spectra are in neutrinos/MeV/s for a 58.3 MW reactor
+    # reactor_tools will multiply by: power*200./1.602176565e-19
+    # We need to rescale to undo this
+    scale = 1./(power/200.0/1.602176565e-19)
 
     nu_spec = NeutrinoSpectrum(distance, power, False, *fractions)
     nu_spec.initialize_d_r_d_enu("u235", "root",
-                                 "../../../final_spectra/TBS_235U_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_thermal_cumulative_JEFF3.1.1.root",
-                                 "nsim100")
-    nu_spec.initialize_d_r_d_enu("u238", "root",
-                                 "../../../final_spectra/TBS_238U_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_fast_cumulative_JEFF3.1.1.root",
-                                 "nsim100")
-    nu_spec.initialize_d_r_d_enu("pu239", "root",
-                                 "../../../final_spectra/TBS_239Pu_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_thermal_cumulative_JEFF3.1.1.root",
-                                 "nsim100")
-    nu_spec.initialize_d_r_d_enu("pu241", "root",
-                                 "../../../final_spectra/TBS_241Pu_beta_10keV_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW_thermal_cumulative_JEFF3.1.1.root",
-                                 "nsim100")
-    nu_spec.initialize_d_r_d_enu("other", "zero")
+                                 "../../../final_spectra/sum_U_Pu_research_reactor_20gspt_Tengblad-TAGSnew-ENSDF2020-Qbeta5br_FERMI.screen.QED.aW.root",
+                                 "nsim_Fission_avg", scale=scale)
+    nu_spec.initialize_d_r_d_enu("u238", "zero")
+    nu_spec.initialize_d_r_d_enu("pu239", "zero")
+    nu_spec.initialize_d_r_d_enu("pu241", "zero")
+    nu_spec.initialize_d_r_d_enu("other", "root",
+                                 "../../../final_spectra/sum_U_Pu_research_reactor_20gspt_Tengblad-TAGSnew-ENSDF2020-Qbeta5br_FERMI.screen.QED.aW.root",
+                                 "nsim_Al28_Mn56_U239_Np239_avg",
+                                 scale=scale)
 
     # Mueller spectra
-    nu_spec_mueller = NeutrinoSpectrum(nu_spec.distance, nu_spec.power, True,
-                                       *fractions)
+    nu_spec_mueller = NeutrinoSpectrum(nu_spec.distance, power, True,
+                                       0.993, 0.0, 0.007, 0.0)
     nu_spec_mueller.initialize_d_r_d_enu("u235", "txt",
                                          "../../data/huber/U235-anti-neutrino-flux-250keV.dat")
     nu_spec_mueller.initialize_d_r_d_enu("u238", "mueller")
@@ -174,9 +175,23 @@ if __name__ == "__main__":
     store_reactor_flux_kev(nu_spec,
                            "flux_research_reactor_gt1800.txt",
                            1800., 1.e4)
-    store_reactor_flux_kev(nu_spec,
-                           "flux_research_reactor_zero.txt",
-                           1.1e4, 1.e4)
+
+    nu_spec.include_other = False
+    nu_spec.set_fractions(fractions)
+    store_reactor_flux_kev(nu_spec, "flux_research_reactor_fission.txt")
+    store_reactor_flux_kev(nu_spec, "flux_research_reactor_fission_lt1800.txt",
+                           0., 1800.)
+    store_reactor_flux_kev(nu_spec, "flux_research_reactor_fission_gt1800.txt",
+                           1800., 1.e4)
+    nu_spec.include_other = True
+    nu_spec.set_fractions([0., 0., 0., 0.])
+    store_reactor_flux_kev(nu_spec, "flux_research_reactor_nonfission.txt")
+    store_reactor_flux_kev(nu_spec, "flux_research_reactor_nonfission_lt1800.txt",
+                           0., 1800.)
+    store_reactor_flux_kev(nu_spec, "flux_research_reactor_nonfission_gt1800.txt",
+                           1800., 1.e4)
+    nu_spec.set_fractions(fractions)
+
     plot_neutrino_spectrum_comparison(nu_spec, nu_spec_mueller, num_points=1000)
     plot_dsigmadT_cns_rate(nu_spec, num_points=100)
     plot_total_cns_rate(nu_spec, num_points=100)

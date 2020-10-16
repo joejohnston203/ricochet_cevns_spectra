@@ -1,7 +1,7 @@
 from reactor_tools import NeutrinoSpectrum
 
 import cevns_spectra
-from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns, cevns_yield_compound, ibd_yield
+from cevns_spectra import dsigmadT_cns, dsigmadT_cns_rate, dsigmadT_cns_rate_compound, total_cns_rate_an, total_cns_rate_an_compound, cns_total_rate_integrated, cns_total_rate_integrated_compound, total_XSec_cns, total_XSec_cns_compound, cevns_yield_compound, ibd_yield, get_atomic_arrs
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -140,11 +140,12 @@ def plot_dsigmadT_cns_rate(nu_spec,
     fig3.patch.set_facecolor('white')
     plt.ylim(bounds)
     plt.xlim(1e0, 1e3)
-    plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, 14, 28.08-14, nu_spec),'g-',label='Si (A=28.1)',linewidth=2)
-    plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, 30, 35.38, nu_spec),'b-',label='Zn (A=64.4)',linewidth=2)
-    plt.loglog(t_arr,dsigmadT_cns_rate(t_arr, 32, 72.64-32., nu_spec),'r-',label='Ge (A=72.6)',linewidth=2)
-    plt.loglog(t_arr,dsigmadT_cns_rate_compound(t_arr, [13, 8], [26.982-13., 16.0-8.], [2, 3], nu_spec),'c-.',label='Al2O3 (A~20)',linewidth=2)
-    plt.loglog(t_arr,dsigmadT_cns_rate_compound(t_arr, [20, 74, 8], [40.078-20., 183.84-74., 16.0-8.], [1, 1, 4], nu_spec),'m:',label='CaWO4 (A~48)',linewidth=2)
+    labels = ["Si", "Zn", "Ge", "Al2O3", "CaWO4"]
+    lines = ['g-', 'b-', 'r-', 'c-.', 'm:']
+    widths = [1,1,1,2,2]
+    for i in range(len(labels)):
+        (Z_arr, N_arr, atom_arr) = get_atomic_arrs(labels[i])
+        plt.loglog(t_arr,dsigmadT_cns_rate_compound(t_arr, Z_arr, N_arr, atom_arr, nu_spec),lines[i],label=labels[i],linewidth=widths[i])
     plt.legend(prop={'size':11})
     plt.xlabel('Recoil Energy T (eV)')
     plt.ylabel('Differential Event Rate (Events/kg/day/eV)')
@@ -161,11 +162,12 @@ def plot_total_cns_rate(nu_spec, num_points=100):
     
     fig4 = plt.figure()
     fig4.patch.set_facecolor('white')
-    plt.loglog(t_arr,total_cns_rate_an(t_arr, 1e7, 14, 28.08-14, nu_spec),'g-',label='Si (A=28.1)',linewidth=2)
-    plt.loglog(t_arr,total_cns_rate_an(t_arr, 1e7, 30, 35.38, nu_spec),'b-',label='Zn (A=64.4)',linewidth=2)
-    plt.loglog(t_arr,total_cns_rate_an(t_arr, 1e7, 32, 72.64-32., nu_spec),'r-',label='Ge (A=72.6)',linewidth=2)
-    plt.loglog(t_arr,total_cns_rate_an_compound(t_arr, 1e7, [13, 8], [26.982-13., 16.0-8.], [2, 3], nu_spec),'c-.',label='Al2O3 (A~20)',linewidth=2)
-    plt.loglog(t_arr,total_cns_rate_an_compound(t_arr, 1e7, [20, 74, 8], [40.078-20., 183.84-74., 16.0-8.], [1, 1, 4], nu_spec),'m:',label='CaWO4 (A~48)',linewidth=2)
+    labels = ["Si", "Zn", "Ge", "Al2O3", "CaWO4"]
+    lines = ['g-', 'b-', 'r-', 'c-.', 'm:']
+    widths = [1,1,1,2,2]
+    for i in range(len(labels)):
+        (Z_arr, N_arr, atom_arr) = get_atomic_arrs(labels[i])
+        plt.loglog(t_arr,total_cns_rate_an_compound(t_arr, 1e7, Z_arr, N_arr, atom_arr, nu_spec),lines[i],label=labels[i],linewidth=widths[i])
     plt.legend(prop={'size':11})
     plt.xlabel('Recoil Threshold (eV)')
     plt.ylabel('Event Rate (Events/kg/day)')
@@ -196,8 +198,7 @@ def lighten_color(color, amount=0.5):
 
 def plot_flux_xsec(nu_spec):
     # Ge
-    Z = 32
-    N = 72.64-32.
+    (Z_arr, N_arr, atom_arr) = get_atomic_arrs("Ge")
 
     e_arr = np.linspace(0., 1e7, 100000)
 
@@ -227,31 +228,25 @@ def plot_flux_xsec(nu_spec):
     p_spec, = host.plot(e_arr*1e-6,spec_tot, "k-", label=r"$\nu$ Flux", linewidth=2.)
     lines.append(p_spec)
 
-    xsec_0eV = total_XSec_cns(0., e_arr, Z, N)
+    xsec_0eV = total_XSec_cns_compound(0., e_arr, Z_arr, N_arr, atom_arr)
     p_xsec_0, = par1.plot(e_arr*1e-6,xsec_0eV, color="#e41a1c", linestyle="-", label=r'T$_{Thr}$=0 eV')
     lines.append(p_xsec_0)
     prod_0eV = spec_tot*xsec_0eV
     p_prod_0, = par2.plot(e_arr*1e-6,spec_tot*xsec_0eV, color=lighten_color("#e41a1c", 1.0), linestyle="-")
 
-    '''xsec_1eV = total_XSec_cns(1., e_arr, Z, N)
-    p_xsec_1, = par1.plot(e_arr*1e-6,xsec_1eV, color="#e41a1c", linestyle="-", label=r'T$_{Thr}$=1 eV')
-    lines.append(p_xsec_1)
-    prod_1eV = spec_tot*xsec_1eV
-    p_prod_1, = par2.plot(e_arr*1e-6,spec_tot*xsec_1eV, color=lighten_color("#e41a1c", 1.0), linestyle="-")'''
-
-    xsec_10eV = total_XSec_cns(10., e_arr, Z, N)
+    xsec_10eV = total_XSec_cns_compound(10., e_arr, Z_arr, N_arr, atom_arr)
     p_xsec_10, = par1.plot(e_arr*1e-6,xsec_10eV, color="#377eb8", linestyle="--", label='T$_{Thr}$=10 eV')
     lines.append(p_xsec_10)
     prod_10eV = spec_tot*xsec_10eV
     p_prod_10, = par2.plot(e_arr*1e-6,spec_tot*xsec_10eV, color=lighten_color("#377eb8", 1.0), linestyle="--")
 
-    xsec_50eV = total_XSec_cns(50., e_arr, Z, N)
+    xsec_50eV = total_XSec_cns_compound(50., e_arr, Z_arr, N_arr, atom_arr)
     p_xsec_50, = par1.plot(e_arr*1e-6,xsec_50eV, color="#4daf4a", linestyle=":", label='T$_{Thr}$=50 eV')
     lines.append(p_xsec_50)
     prod_50eV = spec_tot*xsec_50eV
     p_prod_50, = par2.plot(e_arr*1e-6,spec_tot*xsec_50eV, color=lighten_color('#4daf4a', 1.0), linestyle=":")
 
-    xsec_100eV = total_XSec_cns(100., e_arr, Z, N)
+    xsec_100eV = total_XSec_cns_compound(100., e_arr, Z_arr, N_arr, atom_arr)
     p_xsec_100, = par1.plot(e_arr*1e-6,xsec_100eV, color="#984ea3", linestyle="-.", label='T$_{Thr}$=100 eV')
     lines.append(p_xsec_100)
     prod_100eV = spec_tot*xsec_100eV
@@ -319,95 +314,33 @@ def plot_flux_xsec(nu_spec):
 
 def print_cevns_xsec(nu_spec):
     print("CEvNS Yields per Average Atom (10^-43 cm^2/fission):")
-    print("\tAl2O3 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [13, 8], [26.982-13, 16.0-8], [2, 3], nu_spec)/1.e-43))
-    print("\tAl2O3 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [13, 8], [26.982-13, 16.0-8], [2, 3], nu_spec)/1.e-43))
-    print("\tSi 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [14], [28.08-14.], [1], nu_spec)/1.e-43))
-    print("\tSi 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [14], [28.08-14.], [1], nu_spec)/1.e-43))
-    print("\tZn 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [30], [35.38], [1], nu_spec)/1.e-43))
-    print("\tZn 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [30], [35.38], [1], nu_spec)/1.e-43))
-    print("\tGe 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [32], [72.64-32], [1], nu_spec)/1.e-43))
-    print("\tGe 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [32], [72.64-32], [1], nu_spec)/1.e-43))
-    print("\tCaWO4 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [20, 74, 8], [40.078-20, 183.84-74, 16.0-8], [1, 1, 4], nu_spec)/1.e-43))
-    print("\tCaWO4 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [20, 74, 8], [40.078-20, 183.84-74, 16.0-8], [1, 1, 4], nu_spec)/1.e-43))
+    labels = ["Al2O3", "Si", "Zn", "Ge", "CaWO4"]
+    for i in range(len(labels)):
+        (Z_arr, N_arr, atom_arr) = get_atomic_arrs(labels[i])
+        print("\t%s 10  eV: %.3e"%
+              (labels[i],
+               (cevns_yield_compound(10., 1.e8, Z_arr, N_arr, atom_arr, nu_spec)/1.e-43)))
+        print("\t%s 100 eV: %.3e"%
+              (labels[i],
+               (cevns_yield_compound(100., 1.e8, Z_arr, N_arr, atom_arr, nu_spec)/1.e-43)))
     print("IBD Yield per Nucleon (10^-43 cm^2/fission): %.3e"%(ibd_yield(nu_spec)/1.e-43))
 
     print("")
-    print("Debug Yields:")
-    print("\tAl 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [13], [26.982-13], [1], nu_spec)/1.e-43))
-    print("\tAl 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [13], [26.982-13], [1], nu_spec)/1.e-43))
-    print("\tO 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [8], [16.0-8], [1], nu_spec)/1.e-43))
-    print("\tO 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [8], [16.0-8], [1], nu_spec)/1.e-43))
-    print("\tCa 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [20], [40.078-20], [1], nu_spec)/1.e-43))
-    print("\tCa 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [20], [40.078-20], [1], nu_spec)/1.e-43))
-    print("\tW 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [74], [183.84-74], [1], nu_spec)/1.e-43))
-    print("\tW 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [74], [183.84-74], [1], nu_spec)/1.e-43))
-
-    print("")
     print("CEvNS Yields per Gram (10^-20 cm^2/fission/g):")
-    print("\tAl2O3 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [13, 8], [26.982-13, 16.0-8], [2, 3], nu_spec, per_gram=True)/1.e-20))
-    print("\tAl2O3 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [13, 8], [26.982-13, 16.0-8], [2, 3], nu_spec, per_gram=True)/1.e-20))
-    print("\tSi 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [14], [28.08-14.], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tSi 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [14], [28.08-14.], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tZn 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [30], [35.38], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tZn 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [30], [35.38], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tGe 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [32], [72.64-32], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tGe 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [32], [72.64-32], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tCaWO4 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [20, 74, 8], [40.078-20, 183.84-74, 16.0-8], [1, 1, 4], nu_spec, per_gram=True)/1.e-20))
-    print("\tCaWO4 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [20, 74, 8], [40.078-20, 183.84-74, 16.0-8], [1, 1, 4], nu_spec, per_gram=True)/1.e-20))
+    for i in range(len(labels)):
+        (Z_arr, N_arr, atom_arr) = get_atomic_arrs(labels[i])
+        print("\t%s 10  eV: %.3e"%
+              (labels[i],
+               (cevns_yield_compound(10., 1.e8, Z_arr, N_arr, atom_arr, nu_spec, per_gram=True)/1.e-43)))
+        print("\t%s 100 eV: %.3e"%
+              (labels[i],
+               (cevns_yield_compound(100., 1.e8, Z_arr, N_arr, atom_arr, nu_spec, per_gram=True)/1.e-43)))
     print("IBD Yield (10^-20 cm^2/fission/g): %.3e"%(ibd_yield(nu_spec, per_gram=True)/1.e-20))
-
-    print("")
-    print("Debug Yields:")
-    print("\tAl 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [13], [26.982-13], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tAl 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [13], [26.982-13], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tO 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [8], [16.0-8], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tO 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [8], [16.0-8], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tCa 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [20], [40.078-20], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tCa 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [20], [40.078-20], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tW 10  eV: %.3e"%
-          (cevns_yield_compound(10., 1.e8, [74], [183.84-74], [1], nu_spec, per_gram=True)/1.e-20))
-    print("\tW 100 eV: %.3e"%
-          (cevns_yield_compound(100., 1.e8, [74], [183.84-74], [1], nu_spec, per_gram=True)/1.e-20))
-
 
 
 def plot_lowe_spectra(nu_spec,
                       output_path_prefix="plots/",
-                      Z=32, A=72.64, isotope_name='Ge',
+                      Z=32, A=74, isotope_name='Ge-74',
                       site_title="Commerical Reactor",
                       enu_low=1.8e6,
                       lt18=False, u238n=False,
@@ -702,9 +635,10 @@ if __name__ == "__main__":
     # The averaged spectrum is stored in U-235
     fractions = [1.0, 0.0, 0.0, 0.0]
 
-    # We will assum 60 m from a 4.25 GW reactor for NuCLEUS
+    # Chooz reactors are at 102 m and 72, each 4.25 GW
+    # With both on, this is equivalent to 58.82 m from one 4.25 GW reactor
     power = 4250
-    distance = 6000 # cm
+    distance = 5882 # cm
 
     # The stored spectra are in neutrinos/MeV/s for a 4250 MW reactor
     # reactor_tools will multiply by: power*200./2.602176565e-19
@@ -714,14 +648,14 @@ if __name__ == "__main__":
     nu_spec = NeutrinoSpectrum(distance, power, False, *fractions,
                                include_other=True)
     nu_spec.initialize_d_r_d_enu("u235", "root",
-                                 "../../../final_spectra/sum_U_Pu_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW.root",
+                                 "../../../final_spectra/sum_U_Pu_20gspt_Tengblad-TAGSnew-ENSDF2020-Qbeta5br_FERMI.screen.QED.aW.root",
                                  "nsim_Fission_avg",
                                  scale=scale)
     nu_spec.initialize_d_r_d_enu("u238", "zero")
     nu_spec.initialize_d_r_d_enu("pu239", "zero")
     nu_spec.initialize_d_r_d_enu("pu241", "zero")
     nu_spec.initialize_d_r_d_enu("other", "root",
-                                 "../../../final_spectra/sum_U_Pu_10gspt_Paul_reprocess_2017TAGS_FERMI.screen.QED.aW.root",
+                                 "../../../final_spectra/sum_U_Pu_20gspt_Tengblad-TAGSnew-ENSDF2020-Qbeta5br_FERMI.screen.QED.aW.root",
                                  "nsim_U239_Np239_Pu239_avg",
                                  scale=scale)
 
@@ -747,7 +681,7 @@ if __name__ == "__main__":
                                          "../../data/huber/Pu241-anti-neutrino-flux-250keV.dat")
     nu_spec_mueller.initialize_d_r_d_enu("other", "mueller")
 
-    # Store flux to file, for use by statistical code
+    '''# Store flux to file, for use by statistical code
     store_reactor_flux_kev(nu_spec, "flux_commercial_reactor_all.txt")
     store_reactor_flux_kev(nu_spec,
                            "flux_commercial_reactor_lt1800.txt",
@@ -759,9 +693,17 @@ if __name__ == "__main__":
     nu_spec.include_other = False
     nu_spec.set_fractions(fractions)
     store_reactor_flux_kev(nu_spec, "flux_commercial_reactor_fission.txt")
+    store_reactor_flux_kev(nu_spec, "flux_commercial_reactor_fission_lt1800.txt",
+                           0., 1800.)
+    store_reactor_flux_kev(nu_spec, "flux_commercial_reactor_fission_gt1800.txt",
+                           1800., 1.e4)
     nu_spec.include_other = True
     nu_spec.set_fractions([0., 0., 0., 0.])
     store_reactor_flux_kev(nu_spec, "flux_commercial_reactor_u238n.txt")
+    store_reactor_flux_kev(nu_spec, "flux_commercial_reactor_u238n_lt1800.txt",
+                           0., 1800.)
+    store_reactor_flux_kev(nu_spec, "flux_commercial_reactor_u238n_gt1800.txt",
+                           1800., 1.e4)
     nu_spec.set_fractions(fractions)
 
     # Plot neutrino spectrum and CEvNS Rates
@@ -773,74 +715,54 @@ if __name__ == "__main__":
     print_cevns_xsec(nu_spec)
     print("IBD Yield Summation: %.3e [cm^2/fission]"%ibd_yield(nu_spec, per_gram=False))
     print("IBD Yield Mueller: %.3e [cm^2/fission]"%ibd_yield(nu_spec_mueller, per_gram=False))
-
+    '''
 
     # Compare fission and n capture neutrino spectra
     plot_neutrino_spectrum_other(nu_spec, num_points=1000)
 
     plot_lowe_spectra(nu_spec, "plots/",
-                      Z=32, A=72.64, isotope_name='Ge',
+                      Z=32, A=74, isotope_name='Ge-74',
                       lt18=True, neutron_levels=False)
     plot_lowe_spectra(nu_spec, "plots/",
-                      Z=32, A=72.64, isotope_name='Ge',
+                      Z=32, A=74, isotope_name='Ge-74',
                       u238n=True, neutron_levels=False)
 
+    labels = ["CaWO4",
+             "Ge", "Zn", "Si",
+             "Al2O3"]
+    Z_arrs = list()
+    A_arrs = list()
+    weight_arrs = list()
+    for i in range(len(labels)):
+        (Z_arr, N_arr, atom_arr) = get_atomic_arrs(labels[i])
+        Z_arrs.append(Z_arr)
+        A_arr = np.array(Z_arr)+np.array(N_arr)
+        A_arrs.append(A_arr)
+        weight_arrs.append(atom_arr)
     plot_lowe_spectra_isotopes(nu_spec, "plots/",
-                               Z_arrs=[[20, 74, 8],
-                                       [32], [30], [14],
-                                       [13, 8]],
-                               A_arrs=[[40.078, 183.84, 16.0],
-                                       [72.64], [35.38+30.], [28.08],
-                                       [26.982, 16.0]],
-                               weights=[[1, 1, 4],
-                                        [1], [1], [1],
-                                        [2, 3]],
-                               isotope_names=["CaWO4",
-                                              "Ge", "Zn", "Si",
-                                              "Al2O3"],
+                               Z_arrs=Z_arrs,
+                               A_arrs=A_arrs,
+                               weights=weight_arrs,
+                               isotope_names=labels,
                                lt18=True)
     plot_lowe_spectra_isotopes(nu_spec, "plots/",
-                               Z_arrs=[[20, 74, 8],
-                                       [32], [30], [14],
-                                       [13, 8]],
-                               A_arrs=[[40.078, 183.84, 16.0],
-                                       [72.64], [35.38+30.], [28.08],
-                                       [26.982, 16.0]],
-                               weights=[[1, 1, 4],
-                                        [1], [1], [1],
-                                        [2, 3]],
-                               isotope_names=["CaWO4",
-                                              "Ge", "Zn", "Si",
-                                              "Al2O3"],
+                               Z_arrs=Z_arrs,
+                               A_arrs=A_arrs,
+                               weights=weight_arrs,
+                               isotope_names=labels,
                                lt18=True, plot_high=True,
                                plot_back=False)
     plot_lowe_spectra_isotopes(nu_spec, "plots/",
-                               Z_arrs=[[20, 74, 8],
-                                       [32], [30], [14],
-                                       [13, 8]],
-                               A_arrs=[[40.078, 183.84, 16.0],
-                                       [72.64], [35.38+30.], [28.08],
-                                       [26.982, 16.0]],
-                               weights=[[1, 1, 4],
-                                        [1], [1], [1],
-                                        [2, 3]],
-                               isotope_names=["CaWO4",
-                                              "Ge", "Zn", "Si",
-                                              "Al2O3"],
+                               Z_arrs=Z_arrs,
+                               A_arrs=A_arrs,
+                               weights=weight_arrs,
+                               isotope_names=labels,
                                u238n=True)
     plot_lowe_spectra_isotopes(nu_spec, "plots/",
-                               Z_arrs=[[20, 74, 8],
-                                       [32], [30], [14],
-                                       [13, 8]],
-                               A_arrs=[[40.078, 183.84, 16.0],
-                                       [72.64], [35.38+30.], [28.08],
-                                       [26.982, 16.0]],
-                               weights=[[1, 1, 4],
-                                        [1], [1], [1],
-                                        [2, 3]],
-                               isotope_names=["CaWO4",
-                                              "Ge", "Zn", "Si",
-                                              "Al2O3"],
+                               Z_arrs=Z_arrs,
+                               A_arrs=A_arrs,
+                               weights=weight_arrs,
+                               isotope_names=labels,
                                u238n=True, plot_high=True,
                                plot_back=False)
 
@@ -849,23 +771,13 @@ if __name__ == "__main__":
         os.mkdir("fractions")
     except OSError:
         pass
-    calc_lowe_fraction(nu_spec, "fractions/",
-                       Z_arr=[14], A_arr=[28.08],
-                       weights_arr=[1],
-                       isotope_name='Si')
-    calc_lowe_fraction(nu_spec, "fractions/",
-                       Z_arr=[30], A_arr=[35.38+30.],
-                       weights_arr=[1],
-                       isotope_name='Zn')
-    calc_lowe_fraction(nu_spec, "fractions/",
-                       Z_arr=[32], A_arr=[72.64],
-                       weights_arr=[1],
-                       isotope_name='Ge')
-    calc_lowe_fraction(nu_spec, "fractions/",
-                       Z_arr=[13, 8], A_arr=[26.982, 16.0],
-                       weights_arr=[2, 3],
-                       isotope_name='Al2O3')
-    calc_lowe_fraction(nu_spec, "fractions/",
-                       Z_arr=[20, 74, 8], A_arr=[40.078, 183.84, 16.0],
-                       weights_arr=[1, 1, 4],
-                       isotope_name='CaWO4')
+    labels = ["CaWO4",
+             "Ge", "Zn", "Si",
+             "Al2O3"]
+    for i in range(len(labels)):
+        (Z_arr, N_arr, atom_arr) = get_atomic_arrs(labels[i])
+        A_arr = np.array(Z_arr)+np.array(N_arr)
+        calc_lowe_fraction(nu_spec, "fractions/",
+                           Z_arr=Z_arr, A_arr=A_arr,
+                           weights_arr=atom_arr,
+                           isotope_name=labels[i])
